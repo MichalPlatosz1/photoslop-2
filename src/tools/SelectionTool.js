@@ -1,0 +1,216 @@
+class SelectionTool {
+  constructor(shapes, viewport, onShapeUpdate) {
+    this.shapes = shapes;
+    this.viewport = viewport;
+    this.onShapeUpdate = onShapeUpdate;
+    this.selectedShape = null;
+    this.isDragging = false;
+    this.isResizing = false;
+    this.currentHandle = null;
+    this.startPoint = {x: 0, y: 0};
+    this.dragOffset = {x: 0, y: 0};
+  }
+
+  selectShape(worldX, worldY) {
+    this.clearSelection();
+
+    for (let i = this.shapes.length - 1; i >= 0; i--) {
+      const shape = this.shapes[i];
+      if (shape.containsPoint(worldX, worldY)) {
+        this.selectedShape = shape;
+        shape.setSelected(true);
+        return shape;
+      }
+    }
+
+    return null;
+  }
+
+  clearSelection() {
+    if (this.selectedShape) {
+      this.selectedShape.setSelected(false);
+      this.selectedShape = null;
+    }
+    this.shapes.forEach((shape) => shape.setSelected(false));
+  }
+
+  onMouseDown(worldX, worldY) {
+    if (this.selectedShape) {
+      this.currentHandle = this.selectedShape.getResizeHandle(worldX, worldY);
+
+      if (this.currentHandle) {
+        this.isResizing = true;
+        this.startPoint = {x: worldX, y: worldY};
+        return true;
+      }
+
+      if (this.selectedShape.containsPoint(worldX, worldY)) {
+        this.isDragging = true;
+        this.startPoint = {x: worldX, y: worldY};
+
+        this.dragOffset = {
+          x: worldX - this.selectedShape.x,
+          y: worldY - this.selectedShape.y,
+        };
+        return true;
+      }
+    }
+
+    const selectedShape = this.selectShape(worldX, worldY);
+    return !!selectedShape;
+  }
+
+  onMouseMove(worldX, worldY) {
+    if (this.isResizing && this.selectedShape && this.currentHandle) {
+      if (this.selectedShape.resize) {
+        this.selectedShape.resize(this.currentHandle, worldX, worldY);
+        this.onShapeUpdate();
+      }
+      return true;
+    }
+
+    if (this.isDragging && this.selectedShape) {
+      const newX = worldX - this.dragOffset.x;
+      const newY = worldY - this.dragOffset.y;
+
+      this.moveShape(this.selectedShape, newX, newY);
+      this.onShapeUpdate();
+      return true;
+    }
+
+    return false;
+  }
+
+  onMouseUp() {
+    this.isDragging = false;
+    this.isResizing = false;
+    this.currentHandle = null;
+  }
+
+  moveShape(shape, newX, newY) {
+    const deltaX = newX - shape.x;
+    const deltaY = newY - shape.y;
+
+    if (shape.type === "line") {
+      shape.startX += deltaX;
+      shape.startY += deltaY;
+      shape.endX += deltaX;
+      shape.endY += deltaY;
+      shape.x = newX;
+      shape.y = newY;
+    } else if (shape.type === "rectangle") {
+      shape.x = newX;
+      shape.y = newY;
+    } else if (shape.type === "circle") {
+      shape.centerX += deltaX;
+      shape.centerY += deltaY;
+      shape.x = newX;
+      shape.y = newY;
+    }
+  }
+
+  getCursor(worldX, worldY) {
+    if (this.selectedShape) {
+      const handle = this.selectedShape.getResizeHandle(worldX, worldY);
+      if (handle) {
+        switch (handle) {
+          case "start-point":
+          case "end-point":
+            return "grab";
+          case "top-left":
+          case "bottom-right":
+            return "nw-resize";
+          case "top-right":
+          case "bottom-left":
+            return "ne-resize";
+          case "top":
+          case "bottom":
+            return "n-resize";
+          case "left":
+          case "right":
+            return "w-resize";
+          default:
+            return "pointer";
+        }
+      }
+
+      if (this.selectedShape.containsPoint(worldX, worldY)) {
+        return "move";
+      }
+    }
+
+    for (let i = this.shapes.length - 1; i >= 0; i--) {
+      if (this.shapes[i].containsPoint(worldX, worldY)) {
+        return "pointer";
+      }
+    }
+
+    return "default";
+  }
+
+  drawSelectionHandles(ctx, viewport) {
+    if (!this.selectedShape) return;
+
+    ctx.save();
+
+    if (this.selectedShape.type === "line") {
+      const startX = this.selectedShape.startX;
+      const startY = this.selectedShape.startY;
+      const endX = this.selectedShape.endX;
+      const endY = this.selectedShape.endY;
+
+      ctx.strokeStyle = "#0066CC";
+      ctx.lineWidth = 2 / viewport.zoom;
+      ctx.setLineDash([5 / viewport.zoom, 5 / viewport.zoom]);
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+
+      ctx.fillStyle = "#0066CC";
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1 / viewport.zoom;
+      ctx.setLineDash([]);
+
+      const handleSize = 8 / viewport.zoom;
+
+      ctx.fillRect(startX - handleSize / 2, startY - handleSize / 2, handleSize, handleSize);
+      ctx.strokeRect(startX - handleSize / 2, startY - handleSize / 2, handleSize, handleSize);
+
+      ctx.fillRect(endX - handleSize / 2, endY - handleSize / 2, handleSize, handleSize);
+      ctx.strokeRect(endX - handleSize / 2, endY - handleSize / 2, handleSize, handleSize);
+    } else {
+      const bbox = this.selectedShape.getBoundingBox();
+      const handles = [
+        {x: bbox.left, y: bbox.top},
+        {x: bbox.right, y: bbox.top},
+        {x: bbox.left, y: bbox.bottom},
+        {x: bbox.right, y: bbox.bottom},
+        {x: bbox.left + bbox.width / 2, y: bbox.top},
+        {x: bbox.left + bbox.width / 2, y: bbox.bottom},
+        {x: bbox.left, y: bbox.top + bbox.height / 2},
+        {x: bbox.right, y: bbox.top + bbox.height / 2},
+      ];
+
+      ctx.strokeStyle = "#0066CC";
+      ctx.lineWidth = 1 / viewport.zoom;
+      ctx.setLineDash([5 / viewport.zoom, 5 / viewport.zoom]);
+      ctx.strokeRect(bbox.left, bbox.top, bbox.width, bbox.height);
+
+      ctx.fillStyle = "#0066CC";
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 1 / viewport.zoom;
+      ctx.setLineDash([]);
+
+      const handleSize = 6 / viewport.zoom;
+      handles.forEach((handle) => {
+        ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+        ctx.strokeRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
+      });
+    }
+
+    ctx.restore();
+  }
+}
+
+export default SelectionTool;

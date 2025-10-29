@@ -1,0 +1,42 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background-color: #f8f9fa;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+        sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow: hidden;
+}
+
+#root {
+    height: 100vh;
+}
+
+.app {
+    height: 100vh;
+}
+
+canvas {
+    border: 1px solid #000;
+    background-color: #fff;
+    image-rendering: pixelated; 
+}
+
+.grid {
+    stroke: rgba(0, 0, 0, 0.2);
+    stroke-width: 1;
+}
+
+.shape {
+    fill: rgba(0, 0, 255, 0.5);
+    stroke: #000;
+    stroke-width: 1;
+}
+
+.shape.selected {
+    stroke: red;
+    stroke-width: 2;
+}
