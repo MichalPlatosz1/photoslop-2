@@ -10,6 +10,8 @@ import SelectionTool from "../tools/SelectionTool.js";
 import Line from "../shapes/Line.js";
 import Rectangle from "../shapes/Rectangle.js";
 import Circle from "../shapes/Circle.js";
+import ColorSpaceConverter from "../components/ColorSpaceConverter.js";
+import RGBCube3D from "../components/RGBCube3D.js";
 
 const Canvas = () => {
   const canvasRef = useRef(null);
@@ -74,6 +76,12 @@ const Canvas = () => {
 
   // JPG compression quality state (0.1 to 1.0, default 0.92)
   const [jpgQuality, setJpgQuality] = useState(0.92);
+
+  // Color space converter state
+  const [showColorConverter, setShowColorConverter] = useState(false);
+
+  // RGB Cube 3D state
+  const [showRGBCube, setShowRGBCube] = useState(false);
 
   // Canvas dimensions
   const canvasWidth = 800;
@@ -578,6 +586,15 @@ const Canvas = () => {
       selectedShape.setColor(newColor);
       drawCanvas();
     }
+  };
+
+  const handleColorConverterChange = (newColor) => {
+    setCurrentColor(newColor);
+  };
+
+  const handleRGBCubeColorSelect = (color) => {
+    const hexColor = `#${((1 << 24) + (color.r << 16) + (color.g << 8) + color.b).toString(16).slice(1)}`;
+    setCurrentColor(hexColor);
   };
 
   const handleSaveAsJPG = async () => {
@@ -1089,6 +1106,36 @@ const Canvas = () => {
               borderRadius: "2px",
             }}
           ></div>
+          <button
+            onClick={() => setShowColorConverter(!showColorConverter)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showColorConverter ? "#007bff" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="RGB ↔ CMYK Converter"
+          >
+            🎨 RGB/CMYK
+          </button>
+          <button
+            onClick={() => setShowRGBCube(!showRGBCube)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showRGBCube ? "#28a745" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Kostka RGB 3D"
+          >
+            🧊 RGB Cube
+          </button>
         </div>
 
         {/* Zoom Controls */}
@@ -1680,6 +1727,88 @@ const Canvas = () => {
           }}
         >
           RGB({hoverRGB.r}, {hoverRGB.g}, {hoverRGB.b}) A:{hoverRGB.a}
+        </div>
+      )}
+
+      {/* Color Space Converter */}
+      {showColorConverter && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            right: "20px",
+            zIndex: 1000,
+            maxHeight: "80vh",
+            overflowY: "auto",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            borderRadius: "8px",
+          }}
+        >
+          <div style={{position: "relative"}}>
+            <button
+              onClick={() => setShowColorConverter(false)}
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "#dc3545",
+                color: "white",
+                border: "none",
+                borderRadius: "50%",
+                width: "25px",
+                height: "25px",
+                cursor: "pointer",
+                fontSize: "14px",
+                zIndex: 1001,
+              }}
+              title="Zamknij konwerter"
+            >
+              ×
+            </button>
+            <ColorSpaceConverter onColorChange={handleColorConverterChange} initialColor={currentColor} />
+          </div>
+        </div>
+      )}
+
+      {/* RGB Cube 3D Modal */}
+      {showRGBCube && (
+        <div
+          style={{
+            position: "fixed",
+            top: "20px",
+            left: "20px",
+            backgroundColor: "white",
+            border: "1px solid #ccc",
+            zIndex: 1000,
+            maxHeight: "90vh",
+            overflowY: "auto",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            borderRadius: "8px",
+          }}
+        >
+          <div style={{position: "relative"}}>
+            <button
+              onClick={() => setShowRGBCube(false)}
+              style={{
+                position: "absolute",
+                top: "10px",
+                right: "10px",
+                background: "#dc3545",
+                color: "white",
+                border: "none",
+                borderRadius: "50%",
+                width: "25px",
+                height: "25px",
+                cursor: "pointer",
+                fontSize: "14px",
+                zIndex: 1001,
+              }}
+              title="Zamknij kostkę RGB"
+            >
+              ×
+            </button>
+            <RGBCube3D onColorSelect={handleRGBCubeColorSelect} />
+          </div>
         </div>
       )}
     </div>
