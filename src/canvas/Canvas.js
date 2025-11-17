@@ -12,6 +12,8 @@ import Rectangle from "../shapes/Rectangle.js";
 import Circle from "../shapes/Circle.js";
 import ColorSpaceConverter from "../components/ColorSpaceConverter.js";
 import RGBCube3D from "../components/RGBCube3D.js";
+import PointTransformations from "../components/PointTransformations.js";
+import ImageFilters from "../components/ImageFilters.js";
 
 const Canvas = () => {
   const canvasRef = useRef(null);
@@ -82,6 +84,12 @@ const Canvas = () => {
 
   // RGB Cube 3D state
   const [showRGBCube, setShowRGBCube] = useState(false);
+
+  // Point Transformations state
+  const [showPointTransformations, setShowPointTransformations] = useState(false);
+
+  // Image Filters state
+  const [showImageFilters, setShowImageFilters] = useState(false);
 
   // Canvas dimensions
   const canvasWidth = 800;
@@ -595,6 +603,24 @@ const Canvas = () => {
   const handleRGBCubeColorSelect = (color) => {
     const hexColor = `#${((1 << 24) + (color.r << 16) + (color.g << 8) + color.b).toString(16).slice(1)}`;
     setCurrentColor(hexColor);
+  };
+
+  const handleImageTransformed = (transformedImage) => {
+    // Update the loaded image with the transformed data
+    setLoadedImage((prev) => ({
+      ...prev,
+      data: transformedImage.data
+        ? transformedImage
+        : {
+            ...prev.data,
+            data: transformedImage,
+          },
+    }));
+
+    // Trigger canvas redraw
+    if (ctxRef.current) {
+      throttledDrawCanvas();
+    }
   };
 
   const handleSaveAsJPG = async () => {
@@ -1135,6 +1161,36 @@ const Canvas = () => {
             title="Kostka RGB 3D"
           >
             🧊 RGB Cube
+          </button>
+          <button
+            onClick={() => setShowPointTransformations(!showPointTransformations)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showPointTransformations ? "#17a2b8" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Przekształcenia punktowe"
+          >
+            ⚡ Transformacje
+          </button>
+          <button
+            onClick={() => setShowImageFilters(!showImageFilters)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showImageFilters ? "#fd7e14" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Filtry jakości obrazu"
+          >
+            🔧 Filtry
           </button>
         </div>
 
@@ -1810,6 +1866,122 @@ const Canvas = () => {
             <RGBCube3D onColorSelect={handleRGBCubeColorSelect} />
           </div>
         </div>
+      )}
+
+      {/* Point Transformations Modal */}
+      {showPointTransformations && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
+            }}
+            onClick={() => setShowPointTransformations(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+              zIndex: 1000,
+              maxHeight: "90vh",
+              maxWidth: "90vw",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{position: "relative"}}>
+              <button
+                onClick={() => setShowPointTransformations(false)}
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "25px",
+                  height: "25px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  zIndex: 1001,
+                }}
+                title="Zamknij transformacje"
+              >
+                ×
+              </button>
+              <PointTransformations loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Image Filters Modal */}
+      {showImageFilters && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
+            }}
+            onClick={() => setShowImageFilters(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+              zIndex: 1000,
+              maxHeight: "90vh",
+              maxWidth: "90vw",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{position: "relative"}}>
+              <button
+                onClick={() => setShowImageFilters(false)}
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "25px",
+                  height: "25px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  zIndex: 1001,
+                }}
+                title="Zamknij filtry"
+              >
+                ×
+              </button>
+              <ImageFilters loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
