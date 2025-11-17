@@ -331,7 +331,7 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
     [getPixelSafe, clampPixel]
   );
 
-  // 6. Custom Convolution Filter (Bonus)
+  // 6. Custom Convolution Filter
   const applyCustomFilter = useCallback(
     (imageData, kernel, divisor, offset) => {
       const {width, height, data} = imageData;
@@ -349,9 +349,11 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
           for (let ky = -halfSize; ky <= halfSize; ky++) {
             for (let kx = -halfSize; kx <= halfSize; kx++) {
               const weight = kernel[ky + halfSize][kx + halfSize];
-              sumR += getPixelSafe(data, width, height, x + kx, y + ky, 0) * weight;
-              sumG += getPixelSafe(data, width, height, x + kx, y + ky, 1) * weight;
-              sumB += getPixelSafe(data, width, height, x + kx, y + ky, 2) * weight;
+              // Handle string values during typing (convert to number or use 0)
+              const numWeight = typeof weight === "string" ? parseFloat(weight) || 0 : weight;
+              sumR += getPixelSafe(data, width, height, x + kx, y + ky, 0) * numWeight;
+              sumG += getPixelSafe(data, width, height, x + kx, y + ky, 1) * numWeight;
+              sumB += getPixelSafe(data, width, height, x + kx, y + ky, 2) * numWeight;
             }
           }
 
@@ -516,7 +518,7 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
       ...prev,
       [category]: {
         ...prev[category],
-        [param]: param === "direction" ? value : parseFloat(value),
+        [param]: param === "direction" ? value : isNaN(parseFloat(value)) ? 0 : parseFloat(value),
       },
     }));
   };
@@ -525,7 +527,15 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
   const updateKernelValue = (row, col, value) => {
     setFilterParams((prev) => {
       const newKernel = prev.custom.kernel.map((row) => [...row]);
-      newKernel[row][col] = parseFloat(value) || 0;
+
+      // Allow temporary invalid states like "-" while user is typing
+      if (value === "" || value === "-" || value === "+" || value === ".") {
+        newKernel[row][col] = value;
+      } else {
+        const numValue = parseFloat(value);
+        newKernel[row][col] = isNaN(numValue) ? 0 : numValue;
+      }
+
       return {
         ...prev,
         custom: {
@@ -559,58 +569,6 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
         ...prev.custom,
         size: size,
         kernel: newKernel,
-      },
-    }));
-  };
-
-  // Preset kernels for custom filter
-  const loadPresetKernel = (presetName) => {
-    let kernel,
-      divisor = 1,
-      offset = 0;
-
-    switch (presetName) {
-      case "sharpen":
-        kernel = [
-          [0, -1, 0],
-          [-1, 5, -1],
-          [0, -1, 0],
-        ];
-        break;
-      case "edge":
-        kernel = [
-          [-1, -1, -1],
-          [-1, 8, -1],
-          [-1, -1, -1],
-        ];
-        break;
-      case "emboss":
-        kernel = [
-          [-2, -1, 0],
-          [-1, 1, 1],
-          [0, 1, 2],
-        ];
-        break;
-      case "blur":
-        kernel = [
-          [1, 1, 1],
-          [1, 1, 1],
-          [1, 1, 1],
-        ];
-        divisor = 9;
-        break;
-      default:
-        return;
-    }
-
-    setFilterParams((prev) => ({
-      ...prev,
-      custom: {
-        ...prev.custom,
-        size: kernel.length,
-        kernel: kernel,
-        divisor: divisor,
-        offset: offset,
       },
     }));
   };
@@ -742,7 +700,7 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
       case "custom":
         return (
           <div className="filter-controls">
-            <h4>Splot maski dowolnej (Bonus)</h4>
+            <h4>Splot maski dowolnej</h4>
 
             <div className="control-group">
               <label>Rozmiar maski:</label>
@@ -750,17 +708,6 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
                 <option value={3}>3x3</option>
                 <option value={5}>5x5</option>
                 <option value={7}>7x7</option>
-              </select>
-            </div>
-
-            <div className="control-group">
-              <label>Gotowe maski:</label>
-              <select onChange={(e) => loadPresetKernel(e.target.value)} value="">
-                <option value="">Wybierz preset...</option>
-                <option value="sharpen">Wyostrzanie</option>
-                <option value="edge">Wykrywanie krawędzi</option>
-                <option value="emboss">Emboss</option>
-                <option value="blur">Rozmycie</option>
               </select>
             </div>
 
@@ -848,8 +795,8 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
         <button className={activeTab === "gaussian" ? "active" : ""} onClick={() => setActiveTab("gaussian")}>
           Gaussian Blur
         </button>
-        <button className={activeTab === "custom" ? "active bonus" : "bonus"} onClick={() => setActiveTab("custom")}>
-          ⭐ Splot maski
+        <button className={activeTab === "custom" ? "active" : ""} onClick={() => setActiveTab("custom")}>
+          Splot maski
         </button>
       </div>
 
@@ -879,7 +826,7 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
           }}
         />
         <p style={{fontSize: "12px", color: "#666", marginTop: "5px"}}>
-          Rozmiar: {loadedImage.width} × {loadedImage.height} pikseli
+          Rozmiar: {loadedImage.width} x {loadedImage.height} pikseli
         </p>
       </div>
 
@@ -917,16 +864,6 @@ const ImageFilters = ({loadedImage, onImageTransformed, onImageUpdate}) => {
         .tab-navigation button.active {
           background: #007bff;
           color: white;
-        }
-
-        .tab-navigation button.bonus {
-          background: #28a745;
-          color: white;
-          font-weight: bold;
-        }
-
-        .tab-navigation button.bonus.active {
-          background: #155724;
         }
 
         .controls-section {

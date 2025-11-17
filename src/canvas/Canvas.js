@@ -122,6 +122,18 @@ const Canvas = () => {
     ctxRef.current.imageSmoothingEnabled = false;
 
     const keyDownHandler = (event) => {
+      // Skip keyboard shortcuts if user is typing in an input field
+      const activeElement = document.activeElement;
+      if (
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.tagName === "SELECT" ||
+          activeElement.contentEditable === "true")
+      ) {
+        return;
+      }
+
       switch (event.key) {
         case "p":
           setMode((prevMode) => (prevMode === "pan" ? "draw" : "pan"));
