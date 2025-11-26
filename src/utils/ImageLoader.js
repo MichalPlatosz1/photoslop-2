@@ -94,6 +94,39 @@ class ImageLoader {
             ctx.drawImage(img, 0, 0);
             const imageData = ctx.getImageData(0, 0, img.width, img.height);
 
+            // Debug: sprawdź rzeczywiste wartości pikseli
+            const data = imageData.data;
+            let minR = 255,
+              maxR = 0,
+              minG = 255,
+              maxG = 0,
+              minB = 255,
+              maxB = 0;
+            let samplePixels = [];
+
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+
+              minR = Math.min(minR, r);
+              maxR = Math.max(maxR, r);
+              minG = Math.min(minG, g);
+              maxG = Math.max(maxG, g);
+              minB = Math.min(minB, b);
+              maxB = Math.max(maxB, b);
+
+              // Zapisz próbki pikseli (co 1000. piksel)
+              if (i % 4000 === 0) {
+                samplePixels.push({r, g, b, index: i / 4});
+              }
+            }
+
+            console.log("Analiza załadowanego obrazu JPG:");
+            console.log(`Rozmiar: ${img.width}x${img.height}`);
+            console.log(`Zakresy kolorów - R: ${minR}-${maxR}, G: ${minG}-${maxG}, B: ${minB}-${maxB}`);
+            console.log("Próbka pierwszych pikseli:", samplePixels.slice(0, 10));
+
             resolve({
               width: img.width,
               height: img.height,

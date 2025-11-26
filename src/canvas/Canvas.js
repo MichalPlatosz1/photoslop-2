@@ -14,6 +14,8 @@ import ColorSpaceConverter from "../components/ColorSpaceConverter.js";
 import RGBCube3D from "../components/RGBCube3D.js";
 import PointTransformations from "../components/PointTransformations.js";
 import ImageFilters from "../components/ImageFilters.js";
+import HistogramAnalysis from "../components/HistogramAnalysis.js";
+import BinarizationMethods from "../components/BinarizationMethods.js";
 
 const Canvas = () => {
   const canvasRef = useRef(null);
@@ -90,6 +92,12 @@ const Canvas = () => {
 
   // Image Filters state
   const [showImageFilters, setShowImageFilters] = useState(false);
+
+  // Histogram Analysis state
+  const [showHistogramAnalysis, setShowHistogramAnalysis] = useState(false);
+
+  // Binarization Methods state
+  const [showBinarizationMethods, setShowBinarizationMethods] = useState(false);
 
   // Canvas dimensions
   const canvasWidth = 800;
@@ -1204,6 +1212,36 @@ const Canvas = () => {
           >
             🔧 Filtry
           </button>
+          <button
+            onClick={() => setShowHistogramAnalysis(!showHistogramAnalysis)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showHistogramAnalysis ? "#28a745" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Analiza histogramu"
+          >
+            📊 Histogram
+          </button>
+          <button
+            onClick={() => setShowBinarizationMethods(!showBinarizationMethods)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showBinarizationMethods ? "#dc3545" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Metody binaryzacji"
+          >
+            ⚫⚪ Binaryzacja
+          </button>
         </div>
 
         {/* Zoom Controls */}
@@ -1991,6 +2029,122 @@ const Canvas = () => {
                 ×
               </button>
               <ImageFilters loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Histogram Analysis Modal */}
+      {showHistogramAnalysis && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
+            }}
+            onClick={() => setShowHistogramAnalysis(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+              zIndex: 1000,
+              maxHeight: "90vh",
+              maxWidth: "90vw",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{position: "relative"}}>
+              <button
+                onClick={() => setShowHistogramAnalysis(false)}
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "25px",
+                  height: "25px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  zIndex: 1001,
+                }}
+                title="Zamknij histogram"
+              >
+                ×
+              </button>
+              <HistogramAnalysis loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Binarization Methods Modal */}
+      {showBinarizationMethods && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
+            }}
+            onClick={() => setShowBinarizationMethods(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+              zIndex: 1000,
+              maxHeight: "90vh",
+              maxWidth: "90vw",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{position: "relative"}}>
+              <button
+                onClick={() => setShowBinarizationMethods(false)}
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "25px",
+                  height: "25px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  zIndex: 1001,
+                }}
+                title="Zamknij binaryzację"
+              >
+                ×
+              </button>
+              <BinarizationMethods loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
             </div>
           </div>
         </>
