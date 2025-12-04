@@ -98,6 +98,9 @@ class SelectionTool {
       shape.endY += deltaY;
       shape.x = newX;
       shape.y = newY;
+    } else if (shape.type === "bezierCurve") {
+      // Use the built-in move method for BezierCurve
+      shape.move(deltaX, deltaY);
     } else if (shape.type === "rectangle") {
       shape.x = newX;
       shape.y = newY;
@@ -153,7 +156,44 @@ class SelectionTool {
 
     ctx.save();
 
-    if (this.selectedShape.type === "line") {
+    if (this.selectedShape.type === "bezierCurve") {
+      // Draw control points for Bezier curves
+      const controlPoints = this.selectedShape.getControlPoints();
+      
+      // Draw connecting lines between control points
+      if (controlPoints.length > 1) {
+        ctx.strokeStyle = "#0066CC";
+        ctx.lineWidth = 1 / viewport.zoom;
+        ctx.setLineDash([3 / viewport.zoom, 3 / viewport.zoom]);
+        ctx.beginPath();
+        ctx.moveTo(controlPoints[0].x, controlPoints[0].y);
+        for (let i = 1; i < controlPoints.length; i++) {
+          ctx.lineTo(controlPoints[i].x, controlPoints[i].y);
+        }
+        ctx.stroke();
+      }
+      
+      // Draw control point handles
+      ctx.setLineDash([]);
+      ctx.fillStyle = "#FF6B35";
+      ctx.strokeStyle = "#FFFFFF";
+      ctx.lineWidth = 2 / viewport.zoom;
+      
+      const handleSize = 8 / viewport.zoom;
+      controlPoints.forEach((point, index) => {
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, handleSize / 2, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+        
+        // Label the control point
+        ctx.fillStyle = "#000000";
+        ctx.font = `${12 / viewport.zoom}px Arial`;
+        ctx.textAlign = "center";
+        ctx.fillText(`P${index}`, point.x, point.y - handleSize);
+        ctx.fillStyle = "#FF6B35";
+      });
+    } else if (this.selectedShape.type === "line") {
       const startX = this.selectedShape.startX;
       const startY = this.selectedShape.startY;
       const endX = this.selectedShape.endX;

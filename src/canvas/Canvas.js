@@ -10,6 +10,7 @@ import SelectionTool from "../tools/SelectionTool.js";
 import Line from "../shapes/Line.js";
 import Rectangle from "../shapes/Rectangle.js";
 import Circle from "../shapes/Circle.js";
+import BezierCurve from "../shapes/BezierCurve.js";
 import ColorSpaceConverter from "../components/ColorSpaceConverter.js";
 import RGBCube3D from "../components/RGBCube3D.js";
 import PointTransformations from "../components/PointTransformations.js";
@@ -99,6 +100,11 @@ const Canvas = () => {
   // Binarization Methods state
   const [showBinarizationMethods, setShowBinarizationMethods] = useState(false);
 
+  // Bezier Curve state  
+  const [bezierPoints, setBezierPoints] = useState([]);
+  const [bezierDegree, setBezierDegree] = useState(3);
+  const [isCreatingBezier, setIsCreatingBezier] = useState(false);
+
   // Canvas dimensions
   const canvasWidth = 800;
   const canvasHeight = 600;
@@ -183,6 +189,9 @@ const Canvas = () => {
         case "Escape":
           if (placementMode) {
             exitPlacementMode();
+          } else if (isCreatingBezier) {
+            cancelBezierCreation();
+            drawCanvas();
           }
           break;
         default:
@@ -261,6 +270,13 @@ const Canvas = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Redraw canvas when bezier points change
+  useEffect(() => {
+    if (isCreatingBezier) {
+      drawCanvas();
+    }
+  }, [bezierPoints, isCreatingBezier]);
+
   const addShape = (shape) => {
     shapesRef.current.push(shape);
     if (selectionToolRef.current) {
@@ -277,6 +293,37 @@ const Canvas = () => {
     }
     setShapeCount(0);
     drawCanvas();
+  };
+
+  // Bezier curve helper functions
+  const createBezierCurve = (points) => {
+    if (points.length < 2) return null;
+    
+    const bezierCurve = new BezierCurve(points);
+    bezierCurve.setLineWidth(lineWidth);
+    bezierCurve.setColor(currentColor);
+    return bezierCurve;
+  };
+
+  const addBezierPoint = (x, y) => {
+    const newPoints = [...bezierPoints, {x, y}];
+    setBezierPoints(newPoints);
+    
+    // If we have enough points for the desired degree, finish the curve
+    if (newPoints.length === bezierDegree + 1) {
+      const curve = createBezierCurve(newPoints);
+      if (curve) {
+        addShape(curve);
+      }
+      setBezierPoints([]);
+      setIsCreatingBezier(false);
+      setCurrentTool("line"); // Switch back to default tool
+    }
+  };
+
+  const cancelBezierCreation = () => {
+    setBezierPoints([]);
+    setIsCreatingBezier(false);
   };
 
   const drawPPMToPixelBuffer = (ppmData, offsetX, offsetY) => {
@@ -422,6 +469,37 @@ const Canvas = () => {
       selectionToolRef.current.drawSelectionHandles(ctxRef.current, viewportRef.current);
     }
 
+    // Draw preview points for Bezier curve creation
+    if (isCreatingBezier && bezierPoints.length > 0) {
+      ctxRef.current.save();
+      bezierPoints.forEach((point, index) => {
+        ctxRef.current.fillStyle = '#007bff';
+        ctxRef.current.beginPath();
+        ctxRef.current.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+        ctxRef.current.fill();
+        
+        ctxRef.current.fillStyle = '#000';
+        ctxRef.current.font = '12px Arial';
+        ctxRef.current.textAlign = 'center';
+        ctxRef.current.fillText(`P${index}`, point.x, point.y - 8);
+      });
+      
+      // Draw connecting lines
+      if (bezierPoints.length > 1) {
+        ctxRef.current.strokeStyle = '#007bff';
+        ctxRef.current.lineWidth = 1;
+        ctxRef.current.setLineDash([3, 3]);
+        ctxRef.current.beginPath();
+        ctxRef.current.moveTo(bezierPoints[0].x, bezierPoints[0].y);
+        for (let i = 1; i < bezierPoints.length; i++) {
+          ctxRef.current.lineTo(bezierPoints[i].x, bezierPoints[i].y);
+        }
+        ctxRef.current.stroke();
+        ctxRef.current.setLineDash([]);
+      }
+      ctxRef.current.restore();
+    }
+
     ctxRef.current.restore();
 
     gridRef.current.draw(ctxRef.current, viewportRef.current);
@@ -432,6 +510,16 @@ const Canvas = () => {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     const worldPos = viewportRef.current.screenToWorld(x, y);
+
+    // Handle Bezier curve creation
+    if (currentTool === "bezier") {
+      addBezierPoint(worldPos.x, worldPos.y);
+      if (!isCreatingBezier) {
+        setIsCreatingBezier(true);
+      }
+      drawCanvas();
+      return;
+    }
 
     if (mode === "pan") {
       panToolRef.current.onMouseDown(event);
@@ -1082,6 +1170,22 @@ const Canvas = () => {
             }}
           >
             ⭕ Circle
+          </button>
+          <button
+            onClick={() => {
+              handleToolChange("bezier");
+            }}
+            style={{
+              padding: "5px 10px",
+              fontSize: "11px",
+              backgroundColor: currentTool === "bezier" && mode === "draw" ? "#007bff" : "#fff",
+              color: currentTool === "bezier" && mode === "draw" ? "#fff" : "#333",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            📈 Bézier
           </button>
           <button
             onClick={() => handleModeChange("select")}
@@ -2148,6 +2252,90 @@ const Canvas = () => {
             </div>
           </div>
         </>
+      )}
+
+      {/* Bezier Curve Controls */}
+      {currentTool === "bezier" && (
+        <div
+          style={{
+            position: "fixed",
+            top: "10px",
+            right: "10px",
+            backgroundColor: "white",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            padding: "15px",
+            boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            zIndex: 1000,
+            minWidth: "250px",
+          }}
+        >
+          <div style={{ marginBottom: "15px", fontWeight: "bold", fontSize: "16px" }}>
+            📈 Krzywa Béziera
+          </div>
+
+          {/* Degree Control */}
+          <div style={{ marginBottom: "15px" }}>
+            <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px" }}>
+              Stopień: {bezierDegree} (potrzeba {bezierDegree + 1} punktów)
+            </label>
+            <input
+              type="range"
+              min="2"
+              max="8"
+              value={bezierDegree}
+              onChange={(e) => setBezierDegree(parseInt(e.target.value))}
+              style={{ width: "100%" }}
+              disabled={isCreatingBezier}
+            />
+          </div>
+
+          {/* Status */}
+          <div style={{ marginBottom: "15px", fontSize: "14px" }}>
+            {isCreatingBezier 
+              ? `Kliknij na canvas aby dodać punkt ${bezierPoints.length + 1}/${bezierDegree + 1}`
+              : "Kliknij na canvas aby rozpocząć tworzenie krzywej"
+            }
+          </div>
+
+          {/* Current Points */}
+          {bezierPoints.length > 0 && (
+            <div style={{ marginBottom: "15px", fontSize: "12px", color: "#666" }}>
+              Punkty kontrolne: {bezierPoints.length}/{bezierDegree + 1}
+            </div>
+          )}
+
+          {/* Cancel Button */}
+          <div style={{ marginBottom: "15px" }}>
+            <button
+              onClick={() => {
+                setIsCreatingBezier(false);
+                setBezierPoints([]);
+                drawCanvas();
+              }}
+              disabled={!isCreatingBezier}
+              style={{
+                padding: "8px 16px",
+                backgroundColor: isCreatingBezier ? "#dc3545" : "#6c757d",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: isCreatingBezier ? "pointer" : "not-allowed",
+                width: "100%",
+              }}
+            >
+              Anuluj krzywą
+            </button>
+          </div>
+
+          <div style={{ fontSize: "12px", color: "#666", lineHeight: "1.4" }}>
+            <strong>Instrukcje:</strong>
+            <br />• Kliknij na canvas aby dodać punkty kontrolne
+            <br />• Krzywa zostanie utworzona po dodaniu wszystkich punktów
+            <br />• ESC - anuluj tworzenie krzywej
+            <br />• Użyj trybu Select aby edytować istniejące krzywe
+          </div>
+        </div>
       )}
     </div>
   );
