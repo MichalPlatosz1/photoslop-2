@@ -170,7 +170,7 @@ class SelectionTool {
     if (this.selectedShape.type === "bezierCurve") {
       // Draw control points for Bezier curves
       const controlPoints = this.selectedShape.getControlPoints();
-      
+
       // Draw connecting lines between control points
       if (controlPoints.length > 1) {
         ctx.strokeStyle = "#0066CC";
@@ -183,20 +183,20 @@ class SelectionTool {
         }
         ctx.stroke();
       }
-      
+
       // Draw control point handles
       ctx.setLineDash([]);
       ctx.fillStyle = "#FF6B35";
       ctx.strokeStyle = "#FFFFFF";
       ctx.lineWidth = 2 / viewport.zoom;
-      
+
       const handleSize = 8 / viewport.zoom;
       controlPoints.forEach((point, index) => {
         ctx.beginPath();
         ctx.arc(point.x, point.y, handleSize / 2, 0, 2 * Math.PI);
         ctx.fill();
         ctx.stroke();
-        
+
         // Label the control point
         ctx.fillStyle = "#000000";
         ctx.font = `${12 / viewport.zoom}px Arial`;

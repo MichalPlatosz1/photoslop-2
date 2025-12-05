@@ -105,7 +105,7 @@ const Canvas = () => {
   // Binarization Methods state
   const [showBinarizationMethods, setShowBinarizationMethods] = useState(false);
 
-  // Bezier Curve state  
+  // Bezier Curve state
   const [bezierPoints, setBezierPoints] = useState([]);
   const [bezierDegree, setBezierDegree] = useState(3);
   const [isCreatingBezier, setIsCreatingBezier] = useState(false);
@@ -208,7 +208,10 @@ const Canvas = () => {
           } else if (isCreatingBezier) {
             cancelBezierCreation();
             drawCanvas();
-          } else if (isCreatingPolygonRef.current || (polygonPointsRef.current && polygonPointsRef.current.length > 0)) {
+          } else if (
+            isCreatingPolygonRef.current ||
+            (polygonPointsRef.current && polygonPointsRef.current.length > 0)
+          ) {
             // Cancel polygon creation
             setPolygonPoints([]);
             polygonPointsRef.current = [];
@@ -217,7 +220,10 @@ const Canvas = () => {
           }
           break;
         case "Enter":
-          if (currentToolRef.current === "polygon" && (isCreatingPolygonRef.current || (polygonPointsRef.current && polygonPointsRef.current.length >= 3))) {
+          if (
+            currentToolRef.current === "polygon" &&
+            (isCreatingPolygonRef.current || (polygonPointsRef.current && polygonPointsRef.current.length >= 3))
+          ) {
             const pts = polygonPointsRef.current || [];
             if (pts.length >= 3) {
               const polygon = new Polygon(pts);
@@ -336,7 +342,7 @@ const Canvas = () => {
   // Bezier curve helper functions
   const createBezierCurve = (points) => {
     if (points.length < 2) return null;
-    
+
     const bezierCurve = new BezierCurve(points);
     bezierCurve.setLineWidth(lineWidth);
     bezierCurve.setColor(currentColor);
@@ -346,7 +352,7 @@ const Canvas = () => {
   const addBezierPoint = (x, y) => {
     const newPoints = [...bezierPoints, {x, y}];
     setBezierPoints(newPoints);
-    
+
     // If we have enough points for the desired degree, finish the curve
     if (newPoints.length === bezierDegree + 1) {
       const curve = createBezierCurve(newPoints);
@@ -511,20 +517,20 @@ const Canvas = () => {
     if (isCreatingBezier && bezierPoints.length > 0) {
       ctxRef.current.save();
       bezierPoints.forEach((point, index) => {
-        ctxRef.current.fillStyle = '#007bff';
+        ctxRef.current.fillStyle = "#007bff";
         ctxRef.current.beginPath();
         ctxRef.current.arc(point.x, point.y, 4, 0, 2 * Math.PI);
         ctxRef.current.fill();
-        
-        ctxRef.current.fillStyle = '#000';
-        ctxRef.current.font = '12px Arial';
-        ctxRef.current.textAlign = 'center';
+
+        ctxRef.current.fillStyle = "#000";
+        ctxRef.current.font = "12px Arial";
+        ctxRef.current.textAlign = "center";
         ctxRef.current.fillText(`P${index}`, point.x, point.y - 8);
       });
-      
+
       // Draw connecting lines
       if (bezierPoints.length > 1) {
-        ctxRef.current.strokeStyle = '#007bff';
+        ctxRef.current.strokeStyle = "#007bff";
         ctxRef.current.lineWidth = 1;
         ctxRef.current.setLineDash([3, 3]);
         ctxRef.current.beginPath();
@@ -539,23 +545,24 @@ const Canvas = () => {
     }
 
     // Draw preview for polygon creation
-    const polygonPreviewPoints = polygonPointsRef.current && polygonPointsRef.current.length ? polygonPointsRef.current : polygonPoints;
+    const polygonPreviewPoints =
+      polygonPointsRef.current && polygonPointsRef.current.length ? polygonPointsRef.current : polygonPoints;
     if (isCreatingPolygon && polygonPreviewPoints.length > 0) {
       ctxRef.current.save();
       polygonPreviewPoints.forEach((point, index) => {
-        ctxRef.current.fillStyle = '#28a745';
+        ctxRef.current.fillStyle = "#28a745";
         ctxRef.current.beginPath();
         ctxRef.current.arc(point.x, point.y, 4, 0, 2 * Math.PI);
         ctxRef.current.fill();
 
-        ctxRef.current.fillStyle = '#000';
-        ctxRef.current.font = '12px Arial';
-        ctxRef.current.textAlign = 'center';
+        ctxRef.current.fillStyle = "#000";
+        ctxRef.current.font = "12px Arial";
+        ctxRef.current.textAlign = "center";
         ctxRef.current.fillText(`V${index}`, point.x, point.y - 8);
       });
 
       if (polygonPreviewPoints.length > 1) {
-        ctxRef.current.strokeStyle = '#28a745';
+        ctxRef.current.strokeStyle = "#28a745";
         ctxRef.current.lineWidth = 1;
         ctxRef.current.setLineDash([4, 4]);
         ctxRef.current.beginPath();
@@ -2412,13 +2419,11 @@ const Canvas = () => {
             minWidth: "250px",
           }}
         >
-          <div style={{ marginBottom: "15px", fontWeight: "bold", fontSize: "16px" }}>
-            📈 Krzywa Béziera
-          </div>
+          <div style={{marginBottom: "15px", fontWeight: "bold", fontSize: "16px"}}>📈 Krzywa Béziera</div>
 
           {/* Degree Control */}
-          <div style={{ marginBottom: "15px" }}>
-            <label style={{ display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px" }}>
+          <div style={{marginBottom: "15px"}}>
+            <label style={{display: "block", marginBottom: "8px", fontWeight: "bold", fontSize: "14px"}}>
               Stopień: {bezierDegree} (potrzeba {bezierDegree + 1} punktów)
             </label>
             <input
@@ -2427,28 +2432,27 @@ const Canvas = () => {
               max="8"
               value={bezierDegree}
               onChange={(e) => setBezierDegree(parseInt(e.target.value))}
-              style={{ width: "100%" }}
+              style={{width: "100%"}}
               disabled={isCreatingBezier}
             />
           </div>
 
           {/* Status */}
-          <div style={{ marginBottom: "15px", fontSize: "14px" }}>
-            {isCreatingBezier 
+          <div style={{marginBottom: "15px", fontSize: "14px"}}>
+            {isCreatingBezier
               ? `Kliknij na canvas aby dodać punkt ${bezierPoints.length + 1}/${bezierDegree + 1}`
-              : "Kliknij na canvas aby rozpocząć tworzenie krzywej"
-            }
+              : "Kliknij na canvas aby rozpocząć tworzenie krzywej"}
           </div>
 
           {/* Current Points */}
           {bezierPoints.length > 0 && (
-            <div style={{ marginBottom: "15px", fontSize: "12px", color: "#666" }}>
+            <div style={{marginBottom: "15px", fontSize: "12px", color: "#666"}}>
               Punkty kontrolne: {bezierPoints.length}/{bezierDegree + 1}
             </div>
           )}
 
           {/* Cancel Button */}
-          <div style={{ marginBottom: "15px" }}>
+          <div style={{marginBottom: "15px"}}>
             <button
               onClick={() => {
                 setIsCreatingBezier(false);
@@ -2470,7 +2474,7 @@ const Canvas = () => {
             </button>
           </div>
 
-          <div style={{ fontSize: "12px", color: "#666", lineHeight: "1.4" }}>
+          <div style={{fontSize: "12px", color: "#666", lineHeight: "1.4"}}>
             <strong>Instrukcje:</strong>
             <br />• Kliknij na canvas aby dodać punkty kontrolne
             <br />• Krzywa zostanie utworzona po dodaniu wszystkich punktów
