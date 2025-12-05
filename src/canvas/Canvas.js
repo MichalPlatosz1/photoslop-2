@@ -11,6 +11,7 @@ import Line from "../shapes/Line.js";
 import Rectangle from "../shapes/Rectangle.js";
 import Circle from "../shapes/Circle.js";
 import BezierCurve from "../shapes/BezierCurve.js";
+import Polygon from "../shapes/Polygon.js";
 import ColorSpaceConverter from "../components/ColorSpaceConverter.js";
 import RGBCube3D from "../components/RGBCube3D.js";
 import PointTransformations from "../components/PointTransformations.js";
@@ -26,6 +27,9 @@ const Canvas = () => {
   const viewportRef = useRef(null);
   const gridRef = useRef(null);
   const shapesRef = useRef([]);
+  const polygonPointsRef = useRef([]);
+  const currentToolRef = useRef(null);
+  const isCreatingPolygonRef = useRef(false);
   const panToolRef = useRef(null);
   const zoomToolRef = useRef(null);
   const drawingToolRef = useRef(null);
@@ -55,6 +59,7 @@ const Canvas = () => {
   // RGB hover display state
   const [hoverRGB, setHoverRGB] = useState(null);
   const [hoverPosition, setHoverPosition] = useState({x: 0, y: 0});
+  const [lastMouseWorld, setLastMouseWorld] = useState(null);
 
   // Performance optimization
   const drawTimerRef = useRef(null);
@@ -104,6 +109,9 @@ const Canvas = () => {
   const [bezierPoints, setBezierPoints] = useState([]);
   const [bezierDegree, setBezierDegree] = useState(3);
   const [isCreatingBezier, setIsCreatingBezier] = useState(false);
+  // Polygon state
+  const [polygonPoints, setPolygonPoints] = useState([]);
+  const [isCreatingPolygon, setIsCreatingPolygon] = useState(false);
 
   // Canvas dimensions
   const canvasWidth = 800;
@@ -111,6 +119,14 @@ const Canvas = () => {
   const [virtualWidth, setVirtualWidth] = useState(400);
   const [virtualHeight, setVirtualHeight] = useState(300);
 
+  useEffect(() => {
+    // keep refs in sync with state so handlers read latest values
+    currentToolRef.current = currentTool;
+  }, [currentTool]);
+
+  useEffect(() => {
+    isCreatingPolygonRef.current = isCreatingPolygon;
+  }, [isCreatingPolygon]);
   useEffect(() => {
     // Initialize components
     pixelBufferRef.current = new PixelBuffer(virtualWidth, virtualHeight);
@@ -191,6 +207,28 @@ const Canvas = () => {
             exitPlacementMode();
           } else if (isCreatingBezier) {
             cancelBezierCreation();
+            drawCanvas();
+          } else if (isCreatingPolygonRef.current || (polygonPointsRef.current && polygonPointsRef.current.length > 0)) {
+            // Cancel polygon creation
+            setPolygonPoints([]);
+            polygonPointsRef.current = [];
+            setIsCreatingPolygon(false);
+            drawCanvas();
+          }
+          break;
+        case "Enter":
+          if (currentToolRef.current === "polygon" && (isCreatingPolygonRef.current || (polygonPointsRef.current && polygonPointsRef.current.length >= 3))) {
+            const pts = polygonPointsRef.current || [];
+            if (pts.length >= 3) {
+              const polygon = new Polygon(pts);
+              polygon.setLineWidth(lineWidth);
+              polygon.setColor(currentColor);
+              addShape(polygon);
+            }
+            setPolygonPoints([]);
+            polygonPointsRef.current = [];
+            setIsCreatingPolygon(false);
+            setCurrentTool("line");
             drawCanvas();
           }
           break;
@@ -500,6 +538,43 @@ const Canvas = () => {
       ctxRef.current.restore();
     }
 
+    // Draw preview for polygon creation
+    const polygonPreviewPoints = polygonPointsRef.current && polygonPointsRef.current.length ? polygonPointsRef.current : polygonPoints;
+    if (isCreatingPolygon && polygonPreviewPoints.length > 0) {
+      ctxRef.current.save();
+      polygonPreviewPoints.forEach((point, index) => {
+        ctxRef.current.fillStyle = '#28a745';
+        ctxRef.current.beginPath();
+        ctxRef.current.arc(point.x, point.y, 4, 0, 2 * Math.PI);
+        ctxRef.current.fill();
+
+        ctxRef.current.fillStyle = '#000';
+        ctxRef.current.font = '12px Arial';
+        ctxRef.current.textAlign = 'center';
+        ctxRef.current.fillText(`V${index}`, point.x, point.y - 8);
+      });
+
+      if (polygonPreviewPoints.length > 1) {
+        ctxRef.current.strokeStyle = '#28a745';
+        ctxRef.current.lineWidth = 1;
+        ctxRef.current.setLineDash([4, 4]);
+        ctxRef.current.beginPath();
+        ctxRef.current.moveTo(polygonPreviewPoints[0].x, polygonPreviewPoints[0].y);
+        for (let i = 1; i < polygonPreviewPoints.length; i++) {
+          ctxRef.current.lineTo(polygonPreviewPoints[i].x, polygonPreviewPoints[i].y);
+        }
+        // show line to current mouse position if available
+        if (lastMouseWorld) {
+          const last = polygonPreviewPoints[polygonPreviewPoints.length - 1];
+          ctxRef.current.lineTo(lastMouseWorld.x, lastMouseWorld.y);
+        }
+        ctxRef.current.stroke();
+        ctxRef.current.setLineDash([]);
+      }
+
+      ctxRef.current.restore();
+    }
+
     ctxRef.current.restore();
 
     gridRef.current.draw(ctxRef.current, viewportRef.current);
@@ -517,6 +592,51 @@ const Canvas = () => {
       if (!isCreatingBezier) {
         setIsCreatingBezier(true);
       }
+      drawCanvas();
+      return;
+    }
+
+    // Handle Polygon creation (click to add vertices, double-click or click near first vertex to finish)
+    if (currentTool === "polygon") {
+      const existing = polygonPointsRef.current || [];
+      const isDoubleClick = event.detail === 2;
+      const closedByProximity =
+        existing.length >= 3 && Math.hypot(worldPos.x - existing[0].x, worldPos.y - existing[0].y) <= 10;
+
+      if (closedByProximity) {
+        // Finish polygon without adding a duplicate closing point
+        const polygon = new Polygon(existing);
+        polygon.setLineWidth(lineWidth);
+        polygon.setColor(currentColor);
+        addShape(polygon);
+        setPolygonPoints([]);
+        polygonPointsRef.current = [];
+        setIsCreatingPolygon(false);
+        setCurrentTool("line");
+        drawCanvas();
+        return;
+      }
+
+      // If double-click and not closing by proximity, add the final point then finish
+      if (isDoubleClick && existing.length >= 2) {
+        const newPoints = [...existing, {x: worldPos.x, y: worldPos.y}];
+        const polygon = new Polygon(newPoints);
+        polygon.setLineWidth(lineWidth);
+        polygon.setColor(currentColor);
+        addShape(polygon);
+        setPolygonPoints([]);
+        polygonPointsRef.current = [];
+        setIsCreatingPolygon(false);
+        setCurrentTool("line");
+        drawCanvas();
+        return;
+      }
+
+      // Otherwise add a new vertex
+      const newPoints = [...existing, {x: worldPos.x, y: worldPos.y}];
+      polygonPointsRef.current = newPoints; // update ref immediately so preview uses the newest point
+      setPolygonPoints(newPoints);
+      if (!isCreatingPolygon) setIsCreatingPolygon(true);
       drawCanvas();
       return;
     }
@@ -542,6 +662,9 @@ const Canvas = () => {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     const worldPos = viewportRef.current.screenToWorld(x, y);
+
+    // remember last world position for preview drawing (polygon)
+    setLastMouseWorld(worldPos);
 
     if (mode === "pan" && panToolRef.current.isPanning) {
       panToolRef.current.onMouseMove(event);
@@ -856,6 +979,11 @@ const Canvas = () => {
               break;
             case "circle":
               shape = new Circle(shapeData.centerX, shapeData.centerY, shapeData.radius);
+              break;
+            case "polygon":
+              if (shapeData.points && Array.isArray(shapeData.points)) {
+                shape = new Polygon(shapeData.points.map((p) => ({x: p.x, y: p.y})));
+              }
               break;
             default:
               console.warn(`Unknown shape type: ${shapeData.type}`);
@@ -1186,6 +1314,20 @@ const Canvas = () => {
             }}
           >
             📈 Bézier
+          </button>
+          <button
+            onClick={() => handleToolChange("polygon")}
+            style={{
+              padding: "5px 10px",
+              fontSize: "11px",
+              backgroundColor: currentTool === "polygon" && mode === "draw" ? "#007bff" : "#fff",
+              color: currentTool === "polygon" && mode === "draw" ? "#fff" : "#333",
+              border: "1px solid #ddd",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+          >
+            🔷 Polygon
           </button>
           <button
             onClick={() => handleModeChange("select")}

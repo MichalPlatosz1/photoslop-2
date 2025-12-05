@@ -109,6 +109,16 @@ class SelectionTool {
       shape.centerY += deltaY;
       shape.x = newX;
       shape.y = newY;
+    } else if (shape.type === "polygon") {
+      // Translate all polygon points
+      if (shape.points && Array.isArray(shape.points)) {
+        for (let i = 0; i < shape.points.length; i++) {
+          shape.points[i].x += deltaX;
+          shape.points[i].y += deltaY;
+        }
+      }
+      shape.x = newX;
+      shape.y = newY;
     }
   }
 
@@ -116,10 +126,11 @@ class SelectionTool {
     if (this.selectedShape) {
       const handle = this.selectedShape.getResizeHandle(worldX, worldY);
       if (handle) {
+        // Vertex handles (e.g., "vertex-0") and line end/start should use grab
+        if (typeof handle === "string" && handle.startsWith("vertex-")) return "grab";
+        if (handle === "start-point" || handle === "end-point") return "grab";
+
         switch (handle) {
-          case "start-point":
-          case "end-point":
-            return "grab";
           case "top-left":
           case "bottom-right":
             return "nw-resize";
@@ -220,6 +231,36 @@ class SelectionTool {
       ctx.fillRect(endX - handleSize / 2, endY - handleSize / 2, handleSize, handleSize);
       ctx.strokeRect(endX - handleSize / 2, endY - handleSize / 2, handleSize, handleSize);
     } else {
+      if (this.selectedShape.type === "polygon") {
+        const controlPoints = this.selectedShape.getControlPoints();
+        ctx.setLineDash([]);
+        ctx.fillStyle = "#FF6B35";
+        ctx.strokeStyle = "#FFFFFF";
+        ctx.lineWidth = 2 / viewport.zoom;
+        const handleSize = 8 / viewport.zoom;
+        controlPoints.forEach((point, index) => {
+          ctx.beginPath();
+          ctx.arc(point.x, point.y, handleSize / 2, 0, 2 * Math.PI);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = "#000000";
+          ctx.font = `${12 / viewport.zoom}px Arial`;
+          ctx.textAlign = "center";
+          ctx.fillText(`${index}`, point.x, point.y - handleSize);
+          ctx.fillStyle = "#FF6B35";
+        });
+
+        // Draw polygon bounding box dashed
+        const bbox = this.selectedShape.getBoundingBox();
+        ctx.setLineDash([5 / viewport.zoom, 5 / viewport.zoom]);
+        ctx.strokeStyle = "#0066CC";
+        ctx.lineWidth = 1 / viewport.zoom;
+        ctx.strokeRect(bbox.left, bbox.top, bbox.width, bbox.height);
+        ctx.setLineDash([]);
+        ctx.restore();
+        return;
+      }
       const bbox = this.selectedShape.getBoundingBox();
       const handles = [
         {x: bbox.left, y: bbox.top},
