@@ -15,10 +15,19 @@ class Circle extends Shape {
     // Apply scale to radius; rotation has no visible effect on circle
     const s = this.scale || 1;
     const radius = Math.max(0, this.radius * s);
+    
+    // Use custom pivot if set for offset calculation
+    const defaultCx = this.centerX;
+    const defaultCy = this.centerY;
+    const pivot = this.getEffectivePivot(defaultCx, defaultCy);
+    
+    // Transform center point (this applies offset)
+    const transformedCenter = this.transformPoint(this.centerX, this.centerY, pivot.x, pivot.y);
+    
     Bresenham.drawCircleOutline(
       pixelBuffer,
-      Math.round(this.centerX),
-      Math.round(this.centerY),
+      Math.round(transformedCenter.x),
+      Math.round(transformedCenter.y),
       Math.round(radius),
       r,
       g,
@@ -48,6 +57,8 @@ class Circle extends Shape {
       scale: this.scale,
       offsetX: this.offsetX,
       offsetY: this.offsetY,
+      pivotX: this.pivotX,
+      pivotY: this.pivotY,
     };
   }
 
@@ -109,14 +120,22 @@ class Circle extends Shape {
 
   applyTransformations() {
     if (this.rotation !== 0 || this.scale !== 1 || this.offsetX !== 0 || this.offsetY !== 0) {
-      // Apply scale to radius only (does not affect center position)
+      // Use custom pivot if set, otherwise use center
+      const pivot = this.getEffectivePivot(this.centerX, this.centerY);
+      
+      // Apply scale to radius
       if (this.scale !== 1) {
         this.radius *= this.scale;
       }
 
-      // Apply offset to center (rotation does nothing for a circle's center)
-      this.centerX += this.offsetX || 0;
-      this.centerY += this.offsetY || 0;
+      // Transform the center point around the pivot
+      const transformedCenter = this.transformPoint(this.centerX, this.centerY, pivot.x, pivot.y);
+      
+      // Update center position
+      this.centerX = transformedCenter.x;
+      this.centerY = transformedCenter.y;
+
+      // Update base position
       this.x = this.centerX;
       this.y = this.centerY;
     }

@@ -9,6 +9,8 @@ class Shape {
     this.scale = 1; // uniform scale
     this.offsetX = 0; // translation vector X
     this.offsetY = 0; // translation vector Y
+    this.pivotX = null; // custom pivot point X (null = use default center)
+    this.pivotY = null; // custom pivot point Y (null = use default center)
   }
 
   setColor(color) {
@@ -63,6 +65,8 @@ class Shape {
       scale: this.scale,
       offsetX: this.offsetX,
       offsetY: this.offsetY,
+      pivotX: this.pivotX,
+      pivotY: this.pivotY,
     };
   }
 
@@ -82,6 +86,25 @@ class Shape {
   addOffset(dx, dy) {
     this.offsetX += dx;
     this.offsetY += dy;
+  }
+
+  setPivot(pivotX, pivotY) {
+    this.pivotX = pivotX;
+    this.pivotY = pivotY;
+  }
+
+  clearPivot() {
+    this.pivotX = null;
+    this.pivotY = null;
+  }
+
+  // Get the effective pivot point (custom or default)
+  // Subclasses can override getDefaultPivot() to provide shape-specific default
+  getEffectivePivot(defaultPivotX, defaultPivotY) {
+    if (this.pivotX !== null && this.pivotY !== null) {
+      return {x: this.pivotX, y: this.pivotY};
+    }
+    return {x: defaultPivotX, y: defaultPivotY};
   }
 
   // Transform a point by this shape's rotation and scale around a pivot, then apply offset

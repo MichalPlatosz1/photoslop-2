@@ -113,6 +113,9 @@ const Canvas = () => {
   // Polygon state
   const [polygonPoints, setPolygonPoints] = useState([]);
   const [isCreatingPolygon, setIsCreatingPolygon] = useState(false);
+  
+  // Pivot placement state
+  const [isPlacingPivot, setIsPlacingPivot] = useState(false);
 
   // Canvas dimensions
   const canvasWidth = 800;
@@ -211,7 +214,10 @@ const Canvas = () => {
           }
           break;
         case "Escape":
-          if (placementMode) {
+          if (isPlacingPivot) {
+            setIsPlacingPivot(false);
+            drawCanvas();
+          } else if (placementMode) {
             exitPlacementMode();
           } else if (isCreatingBezier) {
             cancelBezierCreation();
@@ -632,6 +638,39 @@ const Canvas = () => {
       ctxRef.current.restore();
     }
 
+    // Draw pivot point indicator if a shape is selected and has a custom pivot
+    if (selectedShape && selectedShape.pivotX !== null && selectedShape.pivotY !== null) {
+      ctxRef.current.save();
+      const pivotX = selectedShape.pivotX;
+      const pivotY = selectedShape.pivotY;
+      
+      // Draw crosshair at pivot point
+      ctxRef.current.strokeStyle = isPlacingPivot ? "#ff0000" : "#ff6b00";
+      ctxRef.current.lineWidth = 2 / viewportRef.current.zoom;
+      ctxRef.current.setLineDash([]);
+      
+      const size = 8 / viewportRef.current.zoom;
+      ctxRef.current.beginPath();
+      ctxRef.current.moveTo(pivotX - size, pivotY);
+      ctxRef.current.lineTo(pivotX + size, pivotY);
+      ctxRef.current.moveTo(pivotX, pivotY - size);
+      ctxRef.current.lineTo(pivotX, pivotY + size);
+      ctxRef.current.stroke();
+      
+      // Draw circle around pivot
+      ctxRef.current.beginPath();
+      ctxRef.current.arc(pivotX, pivotY, size * 0.7, 0, 2 * Math.PI);
+      ctxRef.current.stroke();
+      
+      // Draw label
+      ctxRef.current.fillStyle = isPlacingPivot ? "#ff0000" : "#ff6b00";
+      ctxRef.current.font = `${12 / viewportRef.current.zoom}px Arial`;
+      ctxRef.current.textAlign = "center";
+      ctxRef.current.fillText("P", pivotX, pivotY - size - 4 / viewportRef.current.zoom);
+      
+      ctxRef.current.restore();
+    }
+
     ctxRef.current.restore();
 
     gridRef.current.draw(ctxRef.current, viewportRef.current);
@@ -642,6 +681,12 @@ const Canvas = () => {
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
     const worldPos = viewportRef.current.screenToWorld(x, y);
+
+    // Special case: Pivot placement mode
+    if (isPlacingPivot && selectedShape) {
+      placePivotAtPoint(worldPos.x, worldPos.y);
+      return;
+    }
 
     // Handle Bezier curve creation
     if (currentTool === "bezier") {
@@ -725,6 +770,10 @@ const Canvas = () => {
 
     if (mode === "pan" && panToolRef.current.isPanning) {
       panToolRef.current.onMouseMove(event);
+      throttledDrawCanvas();
+    } else if (isPlacingPivot) {
+      // Show crosshair cursor during pivot placement
+      setCursor("crosshair");
       throttledDrawCanvas();
     } else if (mode === "select") {
       const handled = selectionToolRef.current.onMouseMove(worldPos.x, worldPos.y);
@@ -845,6 +894,17 @@ const Canvas = () => {
   };
 
   const handleModeChange = (newMode) => {
+    // Clean up any active drawing/creation states when changing modes
+    if (newMode !== "draw") {
+      setIsDrawing(false);
+      setStartPoint(null);
+      setCurrentPreviewShape(null);
+      setPolygonPoints([]);
+      polygonPointsRef.current = [];
+      setIsCreatingPolygon(false);
+      setIsCreatingBezier(false);
+      setBezierPoints([]);
+    }
     setMode(newMode);
   };
 
@@ -916,6 +976,58 @@ const Canvas = () => {
       if (selectedShape.type === "bezierCurve") {
         setBezierControlPoints([...selectedShape.controlPoints]);
       }
+      throttledDrawCanvas();
+    }
+  };
+
+  const handlePivotXChange = (newPivotX) => {
+    if (selectedShape) {
+      const val = newPivotX === "" ? null : parseFloat(newPivotX);
+      selectedShape.setPivot(val, selectedShape.pivotY);
+      throttledDrawCanvas();
+    }
+  };
+
+  const handlePivotYChange = (newPivotY) => {
+    if (selectedShape) {
+      const val = newPivotY === "" ? null : parseFloat(newPivotY);
+      selectedShape.setPivot(selectedShape.pivotX, val);
+      throttledDrawCanvas();
+    }
+  };
+
+  const clearPivotPoint = () => {
+    if (selectedShape) {
+      if (selectedShape.clearPivot) {
+        selectedShape.clearPivot();
+      } else {
+        // Fallback for shapes created before clearPivot was added
+        selectedShape.pivotX = null;
+        selectedShape.pivotY = null;
+      }
+      throttledDrawCanvas();
+    }
+  };
+
+  const togglePivotPlacementMode = () => {
+    if (!selectedShape) return;
+    setIsPlacingPivot(!isPlacingPivot);
+    if (!isPlacingPivot) {
+      // Entering pivot placement mode - temporarily switch to a special mode
+      setCursor("crosshair");
+    }
+  };
+
+  const placePivotAtPoint = (worldX, worldY) => {
+    if (selectedShape) {
+      if (selectedShape.setPivot) {
+        selectedShape.setPivot(worldX, worldY);
+      } else {
+        // Fallback for shapes created before setPivot was added
+        selectedShape.pivotX = worldX;
+        selectedShape.pivotY = worldY;
+      }
+      setIsPlacingPivot(false);
       throttledDrawCanvas();
     }
   };
@@ -1076,7 +1188,15 @@ const Canvas = () => {
               shape = new Line(shapeData.startX, shapeData.startY, shapeData.endX, shapeData.endY);
               break;
             case "rectangle":
-              shape = new Rectangle(shapeData.x, shapeData.y, shapeData.width, shapeData.height);
+              if (shapeData.corners && Array.isArray(shapeData.corners)) {
+                // New format: corners-based rectangle (after refactor)
+                const rect = new Rectangle(0, 0, 0, 0);
+                rect.corners = shapeData.corners.map((p) => ({x: p.x, y: p.y}));
+                shape = rect;
+              } else {
+                // Old format: x, y, width, height
+                shape = new Rectangle(shapeData.x, shapeData.y, shapeData.width, shapeData.height);
+              }
               break;
             case "circle":
               shape = new Circle(shapeData.centerX, shapeData.centerY, shapeData.radius);
@@ -1084,6 +1204,11 @@ const Canvas = () => {
             case "polygon":
               if (shapeData.points && Array.isArray(shapeData.points)) {
                 shape = new Polygon(shapeData.points.map((p) => ({x: p.x, y: p.y})));
+              }
+              break;
+            case "bezierCurve":
+              if (shapeData.controlPoints && Array.isArray(shapeData.controlPoints)) {
+                shape = new BezierCurve(shapeData.controlPoints.map((p) => ({x: p.x, y: p.y})));
               }
               break;
             default:
@@ -1097,6 +1222,9 @@ const Canvas = () => {
           if (shapeData.scale !== undefined) shape.setScale(shapeData.scale);
           if (shapeData.offsetX !== undefined || shapeData.offsetY !== undefined) {
             shape.setOffset(shapeData.offsetX || 0, shapeData.offsetY || 0);
+          }
+          if (shapeData.pivotX !== undefined && shapeData.pivotY !== undefined && shapeData.pivotX !== null && shapeData.pivotY !== null) {
+            shape.setPivot(shapeData.pivotX, shapeData.pivotY);
           }
 
           shapesRef.current.push(shape);
@@ -1934,6 +2062,66 @@ const Canvas = () => {
                     onChange={(e) => handleSelectedShapeOffsetYChange(parseFloat(e.target.value) || 0)}
                     style={{width: "100%", marginTop: "4px", marginBottom: "10px"}}
                   />
+                  <div style={{marginBottom: "10px", paddingTop: "10px", borderTop: "1px solid #ddd"}}>
+                    <label style={{fontSize: "12px", fontWeight: "bold", display: "block", marginBottom: "4px"}}>
+                      Pivot Point (for rotation/scale)
+                    </label>
+                    <div style={{fontSize: "10px", color: "#666", marginBottom: "6px"}}>
+                      Leave empty to use shape center
+                    </div>
+                    <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "6px"}}>
+                      <div>
+                        <label style={{fontSize: "11px", display: "block", marginBottom: "2px"}}>Pivot X:</label>
+                        <input
+                          type="number"
+                          placeholder="auto"
+                          value={selectedShape.pivotX !== null && selectedShape.pivotX !== undefined ? selectedShape.pivotX : ""}
+                          onChange={(e) => handlePivotXChange(e.target.value)}
+                          style={{width: "100%", fontSize: "11px", padding: "4px"}}
+                        />
+                      </div>
+                      <div>
+                        <label style={{fontSize: "11px", display: "block", marginBottom: "2px"}}>Pivot Y:</label>
+                        <input
+                          type="number"
+                          placeholder="auto"
+                          value={selectedShape.pivotY !== null && selectedShape.pivotY !== undefined ? selectedShape.pivotY : ""}
+                          onChange={(e) => handlePivotYChange(e.target.value)}
+                          style={{width: "100%", fontSize: "11px", padding: "4px"}}
+                        />
+                      </div>
+                    </div>
+                    <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "10px"}}>
+                      <button
+                        onClick={togglePivotPlacementMode}
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: "10px",
+                          backgroundColor: isPlacingPivot ? "#28a745" : "#007bff",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "3px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {isPlacingPivot ? "Click on Canvas" : "Place with Mouse"}
+                      </button>
+                      <button
+                        onClick={clearPivotPoint}
+                        style={{
+                          padding: "4px 8px",
+                          fontSize: "10px",
+                          backgroundColor: "#6c757d",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "3px",
+                          cursor: "pointer",
+                        }}
+                      >
+                        Reset to Center
+                      </button>
+                    </div>
+                  </div>
                   <button
                     onClick={applyTransformations}
                     style={{

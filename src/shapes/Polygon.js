@@ -15,9 +15,12 @@ class Polygon extends Shape {
     if (!this.points || this.points.length < 2) return;
 
     const {r, g, b, a} = this.getRGBA();
-    const cx = this.getBoundingBox().left + this.getBoundingBox().width / 2;
-    const cy = this.getBoundingBox().top + this.getBoundingBox().height / 2;
-    const tpoints = this.points.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+    const bbox = this.getBoundingBox();
+    const defaultCx = bbox.left + bbox.width / 2;
+    const defaultCy = bbox.top + bbox.height / 2;
+    // use custom pivot if set, otherwise use center
+    const pivot = this.getEffectivePivot(defaultCx, defaultCy);
+    const tpoints = this.points.map((p) => this.transformPoint(p.x, p.y, pivot.x, pivot.y));
 
     for (let i = 0; i < tpoints.length; i++) {
       const p1 = tpoints[i];
@@ -51,6 +54,8 @@ class Polygon extends Shape {
       scale: this.scale,
       offsetX: this.offsetX,
       offsetY: this.offsetY,
+      pivotX: this.pivotX,
+      pivotY: this.pivotY,
     };
   }
 
@@ -155,9 +160,12 @@ class Polygon extends Shape {
 
       const cx = minX + (maxX - minX) / 2;
       const cy = minY + (maxY - minY) / 2;
+      
+      // Use custom pivot if set, otherwise use center
+      const pivot = this.getEffectivePivot(cx, cy);
 
-      // Transform all points around their center
-      this.points = this.points.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+      // Transform all points around the pivot
+      this.points = this.points.map((p) => this.transformPoint(p.x, p.y, pivot.x, pivot.y));
 
       // Update shape origin to match new bounding box
       const bbox = this.getBoundingBox();

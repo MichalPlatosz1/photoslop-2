@@ -13,11 +13,13 @@ class Line extends Shape {
 
   draw(pixelBuffer) {
     const {r, g, b, a} = this.getRGBA();
-    // compute center
-    const cx = (this.startX + this.endX) / 2;
-    const cy = (this.startY + this.endY) / 2;
-    const p1 = this.transformPoint(this.startX, this.startY, cx, cy);
-    const p2 = this.transformPoint(this.endX, this.endY, cx, cy);
+    // compute default center
+    const defaultCx = (this.startX + this.endX) / 2;
+    const defaultCy = (this.startY + this.endY) / 2;
+    // use custom pivot if set, otherwise use center
+    const pivot = this.getEffectivePivot(defaultCx, defaultCy);
+    const p1 = this.transformPoint(this.startX, this.startY, pivot.x, pivot.y);
+    const p2 = this.transformPoint(this.endX, this.endY, pivot.x, pivot.y);
     Bresenham.drawLine(
       pixelBuffer,
       Math.round(p1.x),
@@ -52,6 +54,8 @@ class Line extends Shape {
       scale: this.scale,
       offsetX: this.offsetX,
       offsetY: this.offsetY,
+      pivotX: this.pivotX,
+      pivotY: this.pivotY,
     };
   }
 
@@ -158,13 +162,16 @@ class Line extends Shape {
 
   applyTransformations() {
     if (this.rotation !== 0 || this.scale !== 1 || this.offsetX !== 0 || this.offsetY !== 0) {
-      // Calculate the center of the line
+      // Calculate the center of the line as default pivot
       const cx = (this.startX + this.endX) / 2;
       const cy = (this.startY + this.endY) / 2;
+      
+      // Use custom pivot if set, otherwise use center
+      const pivot = this.getEffectivePivot(cx, cy);
 
-      // Transform both endpoints around the center
-      const p1 = this.transformPoint(this.startX, this.startY, cx, cy);
-      const p2 = this.transformPoint(this.endX, this.endY, cx, cy);
+      // Transform both endpoints around the pivot
+      const p1 = this.transformPoint(this.startX, this.startY, pivot.x, pivot.y);
+      const p2 = this.transformPoint(this.endX, this.endY, pivot.x, pivot.y);
 
       // Update endpoints with transformed positions
       this.startX = p1.x;

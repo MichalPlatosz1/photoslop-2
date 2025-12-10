@@ -62,9 +62,11 @@ class BezierCurve extends Shape {
     if (this.controlPoints.length < 2) return;
     // Draw the Bezier curve using transformed control points
     const bbox = this.getBoundingBox();
-    const cx = bbox.left + bbox.width / 2;
-    const cy = bbox.top + bbox.height / 2;
-    const tcontrol = this.controlPoints.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+    const defaultCx = bbox.left + bbox.width / 2;
+    const defaultCy = bbox.top + bbox.height / 2;
+    // use custom pivot if set, otherwise use center
+    const pivot = this.getEffectivePivot(defaultCx, defaultCy);
+    const tcontrol = this.controlPoints.map((p) => this.transformPoint(p.x, p.y, pivot.x, pivot.y));
 
     const steps = 200;
     let prevPoint = this.calculateBezierPoint(0, tcontrol);
@@ -244,6 +246,22 @@ class BezierCurve extends Shape {
     return this.degree;
   }
 
+  // Get shape data for saving
+  getShapeData() {
+    return {
+      type: this.type,
+      controlPoints: this.controlPoints.map((p) => ({x: p.x, y: p.y})),
+      color: this.color,
+      lineWidth: this.lineWidth,
+      rotation: this.rotation,
+      scale: this.scale,
+      offsetX: this.offsetX,
+      offsetY: this.offsetY,
+      pivotX: this.pivotX,
+      pivotY: this.pivotY,
+    };
+  }
+
   // Create a copy of this curve
   copy() {
     const newCurve = new BezierCurve(this.controlPoints);
@@ -274,9 +292,12 @@ class BezierCurve extends Shape {
 
       const cx = minX + (maxX - minX) / 2;
       const cy = minY + (maxY - minY) / 2;
+      
+      // Use custom pivot if set, otherwise use center
+      const pivot = this.getEffectivePivot(cx, cy);
 
-      // Transform all control points
-      this.controlPoints = this.controlPoints.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+      // Transform all control points around the pivot
+      this.controlPoints = this.controlPoints.map((p) => this.transformPoint(p.x, p.y, pivot.x, pivot.y));
       this.updatePosition();
     }
     super.applyTransformations();
