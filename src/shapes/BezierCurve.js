@@ -256,6 +256,31 @@ class BezierCurve extends Shape {
   getInfo() {
     return `Krzywa Béziera (stopień ${this.degree}, ${this.controlPoints.length} punktów)`;
   }
+
+  applyTransformations() {
+    if (this.rotation !== 0 || this.scale !== 1 || this.offsetX !== 0 || this.offsetY !== 0) {
+      // Get bounding box to find center
+      let minX = this.controlPoints[0]?.x || 0;
+      let maxX = minX;
+      let minY = this.controlPoints[0]?.y || 0;
+      let maxY = minY;
+      
+      this.controlPoints.forEach((p) => {
+        minX = Math.min(minX, p.x);
+        maxX = Math.max(maxX, p.x);
+        minY = Math.min(minY, p.y);
+        maxY = Math.max(maxY, p.y);
+      });
+      
+      const cx = minX + (maxX - minX) / 2;
+      const cy = minY + (maxY - minY) / 2;
+      
+      // Transform all control points
+      this.controlPoints = this.controlPoints.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+      this.updatePosition();
+    }
+    super.applyTransformations();
+  }
 }
 
 export default BezierCurve;

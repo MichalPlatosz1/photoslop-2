@@ -61,6 +61,10 @@ class Rectangle extends Shape {
       height: this.height,
       color: this.color,
       lineWidth: this.lineWidth,
+      rotation: this.rotation,
+      scale: this.scale,
+      offsetX: this.offsetX,
+      offsetY: this.offsetY,
     };
   }
 
@@ -161,6 +165,32 @@ class Rectangle extends Shape {
     if (Math.abs(this.height) < 1) {
       this.height = this.height < 0 ? -1 : 1;
     }
+  }
+
+  applyTransformations() {
+    if (this.rotation !== 0 || this.scale !== 1 || this.offsetX !== 0 || this.offsetY !== 0) {
+      // Calculate the center BEFORE applying transformations
+      const oldWidth = this.width;
+      const oldHeight = this.height;
+      const cx = this.x + oldWidth / 2;
+      const cy = this.y + oldHeight / 2;
+      
+      // Apply scale to dimensions only (not to position)
+      if (this.scale !== 1) {
+        this.width *= this.scale;
+        this.height *= this.scale;
+      }
+      
+      // Apply offset to the center position (rotation does nothing for rectangles)
+      // Scale doesn't affect a point that's at the scale origin
+      const newCx = cx + (this.offsetX || 0);
+      const newCy = cy + (this.offsetY || 0);
+      
+      // Position the rectangle so its center is at the new center
+      this.x = newCx - this.width / 2;
+      this.y = newCy - this.height / 2;
+    }
+    super.applyTransformations();
   }
 }
 

@@ -7,6 +7,8 @@ class Shape {
     this.selected = false;
     this.rotation = 0; // degrees
     this.scale = 1; // uniform scale
+    this.offsetX = 0; // translation vector X
+    this.offsetY = 0; // translation vector Y
   }
 
   setColor(color) {
@@ -59,6 +61,8 @@ class Shape {
       selected: this.selected,
       rotation: this.rotation,
       scale: this.scale,
+      offsetX: this.offsetX,
+      offsetY: this.offsetY,
     };
   }
 
@@ -70,7 +74,17 @@ class Shape {
     this.scale = s;
   }
 
-  // Transform a point by this shape's rotation and scale around a pivot
+  setOffset(offsetX, offsetY) {
+    this.offsetX = offsetX;
+    this.offsetY = offsetY;
+  }
+
+  addOffset(dx, dy) {
+    this.offsetX += dx;
+    this.offsetY += dy;
+  }
+
+  // Transform a point by this shape's rotation and scale around a pivot, then apply offset
   transformPoint(px, py, pivotX, pivotY) {
     const s = this.scale || 1;
     const angle = ((this.rotation || 0) * Math.PI) / 180;
@@ -80,7 +94,9 @@ class Shape {
     const sy = dy * s;
     const rx = Math.cos(angle) * sx - Math.sin(angle) * sy;
     const ry = Math.sin(angle) * sx + Math.cos(angle) * sy;
-    return {x: pivotX + rx, y: pivotY + ry};
+    const tx = pivotX + rx + (this.offsetX || 0);
+    const ty = pivotY + ry + (this.offsetY || 0);
+    return {x: tx, y: ty};
   }
 
   draw() {
@@ -129,6 +145,16 @@ class Shape {
       }
     }
     return null;
+  }
+
+  // Apply transformations (bake them into the shape's base position/size)
+  // This method should be overridden by subclasses to properly bake transformations
+  applyTransformations() {
+    // Reset transformations to default after applying
+    this.rotation = 0;
+    this.scale = 1;
+    this.offsetX = 0;
+    this.offsetY = 0;
   }
 }
 

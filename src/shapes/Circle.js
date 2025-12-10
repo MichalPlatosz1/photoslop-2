@@ -44,6 +44,10 @@ class Circle extends Shape {
       radius: this.radius,
       color: this.color,
       lineWidth: this.lineWidth,
+      rotation: this.rotation,
+      scale: this.scale,
+      offsetX: this.offsetX,
+      offsetY: this.offsetY,
     };
   }
 
@@ -101,6 +105,22 @@ class Circle extends Shape {
 
     // Ensure minimum radius
     this.radius = Math.max(1, newRadius);
+  }
+
+  applyTransformations() {
+    if (this.rotation !== 0 || this.scale !== 1 || this.offsetX !== 0 || this.offsetY !== 0) {
+      // Apply scale to radius only (does not affect center position)
+      if (this.scale !== 1) {
+        this.radius *= this.scale;
+      }
+      
+      // Apply offset to center (rotation does nothing for a circle's center)
+      this.centerX += (this.offsetX || 0);
+      this.centerY += (this.offsetY || 0);
+      this.x = this.centerX;
+      this.y = this.centerY;
+    }
+    super.applyTransformations();
   }
 }
 

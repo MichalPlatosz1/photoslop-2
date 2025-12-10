@@ -48,6 +48,10 @@ class Line extends Shape {
       endY: this.endY,
       color: this.color,
       lineWidth: this.lineWidth,
+      rotation: this.rotation,
+      scale: this.scale,
+      offsetX: this.offsetX,
+      offsetY: this.offsetY,
     };
   }
 
@@ -150,6 +154,29 @@ class Line extends Shape {
     // Fallback to default bbox-based handles (including rotate/scale)
     if (super.getResizeHandle) return super.getResizeHandle(x, y, tolerance);
     return null;
+  }
+
+  applyTransformations() {
+    if (this.rotation !== 0 || this.scale !== 1 || this.offsetX !== 0 || this.offsetY !== 0) {
+      // Calculate the center of the line
+      const cx = (this.startX + this.endX) / 2;
+      const cy = (this.startY + this.endY) / 2;
+      
+      // Transform both endpoints around the center
+      const p1 = this.transformPoint(this.startX, this.startY, cx, cy);
+      const p2 = this.transformPoint(this.endX, this.endY, cx, cy);
+      
+      // Update endpoints with transformed positions
+      this.startX = p1.x;
+      this.startY = p1.y;
+      this.endX = p2.x;
+      this.endY = p2.y;
+      
+      // Update the shape's base position to match the start point
+      this.x = this.startX;
+      this.y = this.startY;
+    }
+    super.applyTransformations();
   }
 }
 

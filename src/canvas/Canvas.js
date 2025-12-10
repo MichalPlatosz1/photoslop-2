@@ -109,6 +109,7 @@ const Canvas = () => {
   const [bezierPoints, setBezierPoints] = useState([]);
   const [bezierDegree, setBezierDegree] = useState(3);
   const [isCreatingBezier, setIsCreatingBezier] = useState(false);
+  const [bezierControlPoints, setBezierControlPoints] = useState([]);
   // Polygon state
   const [polygonPoints, setPolygonPoints] = useState([]);
   const [isCreatingPolygon, setIsCreatingPolygon] = useState(false);
@@ -141,7 +142,14 @@ const Canvas = () => {
     zoomToolRef.current = new ZoomTool(viewportRef.current, shapesRef.current);
     drawingToolRef.current = new DrawingTool();
     selectionToolRef.current = new SelectionTool(shapesRef.current, viewportRef.current, () => {
-      setSelectedShape(selectionToolRef.current.selectedShape);
+      const selectedShape = selectionToolRef.current.selectedShape;
+      setSelectedShape(selectedShape);
+      // Load Bezier control points if selecting a Bezier curve
+      if (selectedShape && selectedShape.type === "bezierCurve") {
+        setBezierControlPoints([...selectedShape.controlPoints]);
+      } else {
+        setBezierControlPoints([]);
+      }
       drawCanvas();
     });
 
@@ -317,8 +325,9 @@ const Canvas = () => {
   // Redraw canvas when bezier points change
   useEffect(() => {
     if (isCreatingBezier) {
-      drawCanvas();
+      throttledDrawCanvas();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bezierPoints, isCreatingBezier]);
 
   const addShape = (shape) => {
@@ -368,6 +377,48 @@ const Canvas = () => {
   const cancelBezierCreation = () => {
     setBezierPoints([]);
     setIsCreatingBezier(false);
+  };
+
+  // Handlers for Bezier control point editing
+  const updateBezierControlPoint = (index, coord, value) => {
+    const newPoints = [...bezierControlPoints];
+    if (newPoints[index]) {
+      newPoints[index] = {...newPoints[index], [coord]: parseFloat(value) || 0};
+      setBezierControlPoints(newPoints);
+      // If editing selected Bezier curve, update it
+      if (selectedShape && selectedShape.type === "bezierCurve") {
+        selectedShape.setControlPoints(newPoints);
+        throttledDrawCanvas();
+      }
+    }
+  };
+
+  const addBezierControlPointField = () => {
+    setBezierControlPoints([...bezierControlPoints, {x: 0, y: 0}]);
+  };
+
+  const removeBezierControlPoint = (index) => {
+    const newPoints = bezierControlPoints.filter((_, i) => i !== index);
+    setBezierControlPoints(newPoints);
+    // If editing selected Bezier curve, update it
+    if (selectedShape && selectedShape.type === "bezierCurve") {
+      if (newPoints.length >= 2) {
+        selectedShape.setControlPoints(newPoints);
+      }
+      throttledDrawCanvas();
+    }
+  };
+
+  const createBezierFromControlPoints = () => {
+    if (bezierControlPoints.length < 2) {
+      alert("Potrzeba co najmniej 2 punkty kontrolne");
+      return;
+    }
+    const curve = createBezierCurve(bezierControlPoints);
+    if (curve) {
+      addShape(curve);
+      setBezierControlPoints([]);
+    }
   };
 
   const drawPPMToPixelBuffer = (ppmData, offsetX, offsetY) => {
@@ -572,7 +623,6 @@ const Canvas = () => {
         }
         // show line to current mouse position if available
         if (lastMouseWorld) {
-          const last = polygonPreviewPoints[polygonPreviewPoints.length - 1];
           ctxRef.current.lineTo(lastMouseWorld.x, lastMouseWorld.y);
         }
         ctxRef.current.stroke();
@@ -830,6 +880,10 @@ const Canvas = () => {
   const handleSelectedShapeRotationChange = (newRotation) => {
     if (selectedShape) {
       selectedShape.setRotation(newRotation);
+      // Update Bezier control points display if this is a Bezier curve
+      if (selectedShape.type === "bezierCurve") {
+        setBezierControlPoints([...selectedShape.controlPoints]);
+      }
       drawCanvas();
     }
   };
@@ -838,6 +892,31 @@ const Canvas = () => {
     if (selectedShape) {
       selectedShape.setScale(newScale);
       drawCanvas();
+    }
+  };
+
+  const handleSelectedShapeOffsetXChange = (newOffsetX) => {
+    if (selectedShape) {
+      selectedShape.setOffset(newOffsetX, selectedShape.offsetY || 0);
+      throttledDrawCanvas();
+    }
+  };
+
+  const handleSelectedShapeOffsetYChange = (newOffsetY) => {
+    if (selectedShape) {
+      selectedShape.setOffset(selectedShape.offsetX || 0, newOffsetY);
+      throttledDrawCanvas();
+    }
+  };
+
+  const applyTransformations = () => {
+    if (selectedShape && selectedShape.applyTransformations) {
+      selectedShape.applyTransformations();
+      // Reset display values
+      if (selectedShape.type === "bezierCurve") {
+        setBezierControlPoints([...selectedShape.controlPoints]);
+      }
+      throttledDrawCanvas();
     }
   };
 
@@ -986,6 +1065,7 @@ const Canvas = () => {
         // Clear existing shapes
         shapesRef.current = [];
         setSelectedShape(null);
+        setBezierControlPoints([]);
 
         // Recreate shapes from data
         projectData.shapes.forEach((shapeData) => {
@@ -1013,6 +1093,11 @@ const Canvas = () => {
 
           if (shapeData.color) shape.setColor(shapeData.color);
           if (shapeData.lineWidth) shape.setLineWidth(shapeData.lineWidth);
+          if (shapeData.rotation !== undefined) shape.setRotation(shapeData.rotation);
+          if (shapeData.scale !== undefined) shape.setScale(shapeData.scale);
+          if (shapeData.offsetX !== undefined || shapeData.offsetY !== undefined) {
+            shape.setOffset(shapeData.offsetX || 0, shapeData.offsetY || 0);
+          }
 
           shapesRef.current.push(shape);
         });
@@ -1833,12 +1918,174 @@ const Canvas = () => {
                     min="0.1"
                     value={selectedShape.scale || 1}
                     onChange={(e) => handleSelectedShapeScaleChange(parseFloat(e.target.value) || 1)}
-                    style={{width: "100%", marginTop: "4px"}}
+                    style={{width: "100%", marginTop: "4px", marginBottom: "6px"}}
                   />
+                  <label style={{fontSize: "12px", fontWeight: "bold"}}>Offset X:</label>
+                  <input
+                    type="number"
+                    value={selectedShape.offsetX || 0}
+                    onChange={(e) => handleSelectedShapeOffsetXChange(parseFloat(e.target.value) || 0)}
+                    style={{width: "100%", marginTop: "4px", marginBottom: "6px"}}
+                  />
+                  <label style={{fontSize: "12px", fontWeight: "bold"}}>Offset Y:</label>
+                  <input
+                    type="number"
+                    value={selectedShape.offsetY || 0}
+                    onChange={(e) => handleSelectedShapeOffsetYChange(parseFloat(e.target.value) || 0)}
+                    style={{width: "100%", marginTop: "4px", marginBottom: "10px"}}
+                  />
+                  <button
+                    onClick={applyTransformations}
+                    style={{
+                      width: "100%",
+                      padding: "8px 12px",
+                      fontSize: "11px",
+                      backgroundColor: "#17a2b8",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                    }}
+                  >
+                    ✓ Zastosuj transformacje
+                  </button>
                 </div>
               </div>
             </div>
           )}
+
+          {/* Bezier Control Points Editor */}
+          {selectedShape && selectedShape.type === "bezierCurve" && (
+            <div style={{marginBottom: "20px"}}>
+              <h4 style={{margin: "0 0 10px 0", fontSize: "14px", color: "#666"}}>Punkty kontrolne Béziera</h4>
+              <div
+                style={{
+                  padding: "10px",
+                  backgroundColor: "#f0f8ff",
+                  borderRadius: "4px",
+                  border: "1px solid #87ceeb",
+                  marginBottom: "10px",
+                }}
+              >
+                {selectedShape.controlPoints.map((point, idx) => (
+                  <div key={idx} style={{marginBottom: "8px", paddingBottom: "8px", borderBottom: idx < selectedShape.controlPoints.length - 1 ? "1px solid #ddd" : "none"}}>
+                    <div style={{fontSize: "12px", fontWeight: "bold", marginBottom: "4px"}}>Punkt {idx + 1}</div>
+                    <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px"}}>
+                      <div>
+                        <label style={{fontSize: "10px", display: "block", marginBottom: "2px"}}>X:</label>
+                        <input
+                          type="number"
+                          value={Math.round(point.x)}
+                          onChange={(e) => updateBezierControlPoint(idx, "x", e.target.value)}
+                          style={{width: "100%", fontSize: "11px", padding: "2px"}}
+                        />
+                      </div>
+                      <div>
+                        <label style={{fontSize: "10px", display: "block", marginBottom: "2px"}}>Y:</label>
+                        <input
+                          type="number"
+                          value={Math.round(point.y)}
+                          onChange={(e) => updateBezierControlPoint(idx, "y", e.target.value)}
+                          style={{width: "100%", fontSize: "11px", padding: "2px"}}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Bezier Creation with Text Fields */}
+          <div style={{marginBottom: "20px"}}>
+            <h4 style={{margin: "0 0 10px 0", fontSize: "14px", color: "#666"}}>Utwórz Béziera z pól tekstowych</h4>
+            <div
+              style={{
+                padding: "10px",
+                backgroundColor: "#fffacd",
+                borderRadius: "4px",
+                border: "1px solid #ffd700",
+                marginBottom: "10px",
+              }}
+            >
+              <div style={{fontSize: "12px", marginBottom: "10px", color: "#666"}}>
+                Punkty ({bezierControlPoints.length}):
+              </div>
+              {bezierControlPoints.map((point, idx) => (
+                <div key={idx} style={{marginBottom: "8px", paddingBottom: "8px", borderBottom: idx < bezierControlPoints.length - 1 ? "1px solid #e0e0e0" : "none"}}>
+                  <div style={{fontSize: "12px", fontWeight: "bold", marginBottom: "4px"}}>Punkt {idx + 1}</div>
+                  <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px", alignItems: "flex-end"}}>
+                    <div>
+                      <label style={{fontSize: "10px", display: "block", marginBottom: "2px"}}>X:</label>
+                      <input
+                        type="number"
+                        value={point.x}
+                        onChange={(e) => updateBezierControlPoint(idx, "x", e.target.value)}
+                        style={{width: "100%", fontSize: "11px", padding: "2px"}}
+                      />
+                    </div>
+                    <div>
+                      <label style={{fontSize: "10px", display: "block", marginBottom: "2px"}}>Y:</label>
+                      <input
+                        type="number"
+                        value={point.y}
+                        onChange={(e) => updateBezierControlPoint(idx, "y", e.target.value)}
+                        style={{width: "100%", fontSize: "11px", padding: "2px"}}
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeBezierControlPoint(idx)}
+                      style={{
+                        padding: "4px 8px",
+                        fontSize: "10px",
+                        backgroundColor: "#ff6b6b",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "3px",
+                        cursor: "pointer",
+                      }}
+                    >
+                      Usuń
+                    </button>
+                  </div>
+                </div>
+              ))}
+              <button
+                onClick={addBezierControlPointField}
+                style={{
+                  width: "100%",
+                  padding: "6px 12px",
+                  fontSize: "11px",
+                  backgroundColor: "#87ceeb",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "3px",
+                  cursor: "pointer",
+                  marginBottom: "8px",
+                  marginTop: "8px",
+                }}
+              >
+                + Dodaj punkt
+              </button>
+              <button
+                onClick={createBezierFromControlPoints}
+                disabled={bezierControlPoints.length < 2}
+                style={{
+                  width: "100%",
+                  padding: "6px 12px",
+                  fontSize: "11px",
+                  backgroundColor: bezierControlPoints.length < 2 ? "#ccc" : "#28a745",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "3px",
+                  cursor: bezierControlPoints.length < 2 ? "not-allowed" : "pointer",
+                }}
+              >
+                ✓ Utwórz Béziera
+              </button>
+            </div>
+          </div>
 
           {/* Parametric Shape Creation */}
           <div style={{marginBottom: "20px"}}>
