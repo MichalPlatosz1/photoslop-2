@@ -13,7 +13,23 @@ class Line extends Shape {
 
   draw(pixelBuffer) {
     const {r, g, b, a} = this.getRGBA();
-    Bresenham.drawLine(pixelBuffer, this.startX, this.startY, this.endX, this.endY, r, g, b, a, this.lineWidth);
+    // compute center
+    const cx = (this.startX + this.endX) / 2;
+    const cy = (this.startY + this.endY) / 2;
+    const p1 = this.transformPoint(this.startX, this.startY, cx, cy);
+    const p2 = this.transformPoint(this.endX, this.endY, cx, cy);
+    Bresenham.drawLine(
+      pixelBuffer,
+      Math.round(p1.x),
+      Math.round(p1.y),
+      Math.round(p2.x),
+      Math.round(p2.y),
+      r,
+      g,
+      b,
+      a,
+      this.lineWidth
+    );
   }
 
   modify(newStartX, newStartY, newEndX, newEndY) {
@@ -56,10 +72,16 @@ class Line extends Shape {
   }
 
   getBoundingBox() {
-    const minX = Math.min(this.startX, this.endX);
-    const minY = Math.min(this.startY, this.endY);
-    const maxX = Math.max(this.startX, this.endX);
-    const maxY = Math.max(this.startY, this.endY);
+    // Transform endpoints around center to account for rotation/scale
+    const cx = (this.startX + this.endX) / 2;
+    const cy = (this.startY + this.endY) / 2;
+    const p1 = this.transformPoint(this.startX, this.startY, cx, cy);
+    const p2 = this.transformPoint(this.endX, this.endY, cx, cy);
+
+    const minX = Math.min(p1.x, p2.x);
+    const minY = Math.min(p1.y, p2.y);
+    const maxX = Math.max(p1.x, p2.x);
+    const maxY = Math.max(p1.y, p2.y);
 
     return {
       left: minX,
@@ -125,6 +147,8 @@ class Line extends Shape {
       return "end-point";
     }
 
+    // Fallback to default bbox-based handles (including rotate/scale)
+    if (super.getResizeHandle) return super.getResizeHandle(x, y, tolerance);
     return null;
   }
 }

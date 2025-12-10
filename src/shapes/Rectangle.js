@@ -13,7 +13,36 @@ class Rectangle extends Shape {
 
   draw(pixelBuffer) {
     const {r, g, b, a} = this.getRGBA();
-    Bresenham.drawRectangle(pixelBuffer, this.x, this.y, this.width, this.height, r, g, b, a, this.lineWidth);
+    // compute rectangle corners
+    const x1 = this.x;
+    const y1 = this.y;
+    const x2 = this.x + this.width;
+    const y2 = this.y + this.height;
+    const corners = [
+      {x: x1, y: y1},
+      {x: x2, y: y1},
+      {x: x2, y: y2},
+      {x: x1, y: y2},
+    ];
+    const cx = this.x + this.width / 2;
+    const cy = this.y + this.height / 2;
+    const t = corners.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+    for (let i = 0; i < 4; i++) {
+      const aP = t[i];
+      const bP = t[(i + 1) % 4];
+      Bresenham.drawLine(
+        pixelBuffer,
+        Math.round(aP.x),
+        Math.round(aP.y),
+        Math.round(bP.x),
+        Math.round(bP.y),
+        r,
+        g,
+        b,
+        a,
+        this.lineWidth
+      );
+    }
   }
 
   modify(newX, newY, newWidth, newHeight) {
@@ -50,13 +79,39 @@ class Rectangle extends Shape {
   }
 
   getBoundingBox() {
+    // Compute transformed corners and axis-aligned bounding box
+    const x1 = this.x;
+    const y1 = this.y;
+    const x2 = this.x + this.width;
+    const y2 = this.y + this.height;
+    const corners = [
+      {x: x1, y: y1},
+      {x: x2, y: y1},
+      {x: x2, y: y2},
+      {x: x1, y: y2},
+    ];
+    const cx = this.x + this.width / 2;
+    const cy = this.y + this.height / 2;
+    const t = corners.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+
+    let minX = t[0].x;
+    let minY = t[0].y;
+    let maxX = t[0].x;
+    let maxY = t[0].y;
+    t.forEach((p) => {
+      if (p.x < minX) minX = p.x;
+      if (p.y < minY) minY = p.y;
+      if (p.x > maxX) maxX = p.x;
+      if (p.y > maxY) maxY = p.y;
+    });
+
     return {
-      left: this.x,
-      top: this.y,
-      right: this.x + this.width,
-      bottom: this.y + this.height,
-      width: Math.abs(this.width),
-      height: Math.abs(this.height),
+      left: minX,
+      top: minY,
+      right: maxX,
+      bottom: maxY,
+      width: maxX - minX,
+      height: maxY - minY,
     };
   }
 

@@ -60,14 +60,18 @@ class BezierCurve extends Shape {
 
   draw(pixelBuffer) {
     if (this.controlPoints.length < 2) return;
+    // Draw the Bezier curve using transformed control points
+    const bbox = this.getBoundingBox();
+    const cx = bbox.left + bbox.width / 2;
+    const cy = bbox.top + bbox.height / 2;
+    const tcontrol = this.controlPoints.map((p) => this.transformPoint(p.x, p.y, cx, cy));
 
-    // Draw the Bezier curve
     const steps = 200;
-    let prevPoint = this.calculateBezierPoint(0, this.controlPoints);
+    let prevPoint = this.calculateBezierPoint(0, tcontrol);
 
     for (let i = 1; i <= steps; i++) {
       const t = i / steps;
-      const currentPoint = this.calculateBezierPoint(t, this.controlPoints);
+      const currentPoint = this.calculateBezierPoint(t, tcontrol);
 
       // Draw line segment from previous point to current point
       this.drawLine(
@@ -149,12 +153,12 @@ class BezierCurve extends Shape {
       return {left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0};
     }
 
+    // Transform control points around bbox center
     let minX = this.controlPoints[0].x;
     let maxX = this.controlPoints[0].x;
     let minY = this.controlPoints[0].y;
     let maxY = this.controlPoints[0].y;
 
-    // Check all control points
     this.controlPoints.forEach((point) => {
       minX = Math.min(minX, point.x);
       maxX = Math.max(maxX, point.x);
@@ -162,25 +166,34 @@ class BezierCurve extends Shape {
       maxY = Math.max(maxY, point.y);
     });
 
-    // Also check some points along the curve for more accurate bounds
+    const cx = minX + (maxX - minX) / 2;
+    const cy = minY + (maxY - minY) / 2;
+    const tcontrol = this.controlPoints.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+
+    // Also check some points along the transformed curve for more accurate bounds
+    let tminX = tcontrol[0].x;
+    let tmaxX = tcontrol[0].x;
+    let tminY = tcontrol[0].y;
+    let tmaxY = tcontrol[0].y;
+
     const steps = 50;
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      const point = this.calculateBezierPoint(t, this.controlPoints);
-      minX = Math.min(minX, point.x);
-      maxX = Math.max(maxX, point.x);
-      minY = Math.min(minY, point.y);
-      maxY = Math.max(maxY, point.y);
+      const point = this.calculateBezierPoint(t, tcontrol);
+      tminX = Math.min(tminX, point.x);
+      tmaxX = Math.max(tmaxX, point.x);
+      tminY = Math.min(tminY, point.y);
+      tmaxY = Math.max(tmaxY, point.y);
     }
 
     const padding = this.lineWidth / 2;
     return {
-      left: minX - padding,
-      top: minY - padding,
-      right: maxX + padding,
-      bottom: maxY + padding,
-      width: maxX - minX + 2 * padding,
-      height: maxY - minY + 2 * padding,
+      left: tminX - padding,
+      top: tminY - padding,
+      right: tmaxX + padding,
+      bottom: tmaxY + padding,
+      width: tmaxX - tminX + 2 * padding,
+      height: tmaxY - tminY + 2 * padding,
     };
   }
 
@@ -193,6 +206,7 @@ class BezierCurve extends Shape {
         return `control-${i}`;
       }
     }
+    if (super.getResizeHandle) return super.getResizeHandle(x, y, tolerance);
     return null;
   }
 

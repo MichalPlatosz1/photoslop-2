@@ -827,6 +827,20 @@ const Canvas = () => {
     }
   };
 
+  const handleSelectedShapeRotationChange = (newRotation) => {
+    if (selectedShape) {
+      selectedShape.setRotation(newRotation);
+      drawCanvas();
+    }
+  };
+
+  const handleSelectedShapeScaleChange = (newScale) => {
+    if (selectedShape) {
+      selectedShape.setScale(newScale);
+      drawCanvas();
+    }
+  };
+
   const handleSelectedShapeColorChange = (newColor) => {
     if (selectedShape) {
       selectedShape.setColor(newColor);
@@ -1804,6 +1818,24 @@ const Canvas = () => {
                   <span style={{fontSize: "11px", color: "#666"}}>{selectedShape.color}</span>
                 </div>
                 <div style={{textAlign: "center", fontSize: "11px", color: "#1976d2"}}>Adjust selected shape color</div>
+                <div style={{marginTop: "10px"}}>
+                  <label style={{fontSize: "12px", fontWeight: "bold"}}>Rotation (deg):</label>
+                  <input
+                    type="number"
+                    value={selectedShape.rotation || 0}
+                    onChange={(e) => handleSelectedShapeRotationChange(parseFloat(e.target.value) || 0)}
+                    style={{width: "100%", marginTop: "4px", marginBottom: "6px"}}
+                  />
+                  <label style={{fontSize: "12px", fontWeight: "bold"}}>Scale:</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0.1"
+                    value={selectedShape.scale || 1}
+                    onChange={(e) => handleSelectedShapeScaleChange(parseFloat(e.target.value) || 1)}
+                    style={{width: "100%", marginTop: "4px"}}
+                  />
+                </div>
               </div>
             </div>
           )}

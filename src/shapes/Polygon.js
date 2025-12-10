@@ -15,11 +15,25 @@ class Polygon extends Shape {
     if (!this.points || this.points.length < 2) return;
 
     const {r, g, b, a} = this.getRGBA();
+    const cx = this.getBoundingBox().left + this.getBoundingBox().width / 2;
+    const cy = this.getBoundingBox().top + this.getBoundingBox().height / 2;
+    const tpoints = this.points.map((p) => this.transformPoint(p.x, p.y, cx, cy));
 
-    for (let i = 0; i < this.points.length; i++) {
-      const p1 = this.points[i];
-      const p2 = this.points[(i + 1) % this.points.length];
-      Bresenham.drawLine(pixelBuffer, p1.x, p1.y, p2.x, p2.y, r, g, b, a, this.lineWidth);
+    for (let i = 0; i < tpoints.length; i++) {
+      const p1 = tpoints[i];
+      const p2 = tpoints[(i + 1) % tpoints.length];
+      Bresenham.drawLine(
+        pixelBuffer,
+        Math.round(p1.x),
+        Math.round(p1.y),
+        Math.round(p2.x),
+        Math.round(p2.y),
+        r,
+        g,
+        b,
+        a,
+        this.lineWidth
+      );
     }
   }
 
@@ -59,11 +73,11 @@ class Polygon extends Shape {
       return {left: this.x, top: this.y, right: this.x, bottom: this.y, width: 0, height: 0};
     }
 
+    // Compute transformed points around bbox center
     let minX = this.points[0].x;
     let minY = this.points[0].y;
     let maxX = this.points[0].x;
     let maxY = this.points[0].y;
-
     this.points.forEach((p) => {
       if (p.x < minX) minX = p.x;
       if (p.y < minY) minY = p.y;
@@ -71,7 +85,22 @@ class Polygon extends Shape {
       if (p.y > maxY) maxY = p.y;
     });
 
-    return {left: minX, top: minY, right: maxX, bottom: maxY, width: maxX - minX, height: maxY - minY};
+    const cx = minX + (maxX - minX) / 2;
+    const cy = minY + (maxY - minY) / 2;
+    const tpoints = this.points.map((p) => this.transformPoint(p.x, p.y, cx, cy));
+
+    let tminX = tpoints[0].x;
+    let tminY = tpoints[0].y;
+    let tmaxX = tpoints[0].x;
+    let tmaxY = tpoints[0].y;
+    tpoints.forEach((p) => {
+      if (p.x < tminX) tminX = p.x;
+      if (p.y < tminY) tminY = p.y;
+      if (p.x > tmaxX) tmaxX = p.x;
+      if (p.y > tmaxY) tmaxY = p.y;
+    });
+
+    return {left: tminX, top: tminY, right: tmaxX, bottom: tmaxY, width: tmaxX - tminX, height: tmaxY - tminY};
   }
 
   getResizeHandle(x, y, tolerance = 10) {
@@ -81,6 +110,8 @@ class Polygon extends Shape {
       const dist = Math.hypot(x - p.x, y - p.y);
       if (dist <= tolerance) return `vertex-${i}`;
     }
+    // Fallback to bbox handles (rotate/scale) if available
+    if (super.getResizeHandle) return super.getResizeHandle(x, y, tolerance);
     return null;
   }
 

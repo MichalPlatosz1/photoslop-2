@@ -5,6 +5,8 @@ class Shape {
     this.color = "black";
     this.lineWidth = 1;
     this.selected = false;
+    this.rotation = 0; // degrees
+    this.scale = 1; // uniform scale
   }
 
   setColor(color) {
@@ -55,7 +57,30 @@ class Shape {
       color: this.color,
       lineWidth: this.lineWidth,
       selected: this.selected,
+      rotation: this.rotation,
+      scale: this.scale,
     };
+  }
+
+  setRotation(deg) {
+    this.rotation = deg;
+  }
+
+  setScale(s) {
+    this.scale = s;
+  }
+
+  // Transform a point by this shape's rotation and scale around a pivot
+  transformPoint(px, py, pivotX, pivotY) {
+    const s = this.scale || 1;
+    const angle = ((this.rotation || 0) * Math.PI) / 180;
+    const dx = px - pivotX;
+    const dy = py - pivotY;
+    const sx = dx * s;
+    const sy = dy * s;
+    const rx = Math.cos(angle) * sx - Math.sin(angle) * sy;
+    const ry = Math.sin(angle) * sx + Math.cos(angle) * sy;
+    return {x: pivotX + rx, y: pivotY + ry};
   }
 
   draw() {
@@ -92,6 +117,10 @@ class Shape {
       bottom: {x: bbox.left + bbox.width / 2, y: bbox.bottom},
       left: {x: bbox.left, y: bbox.top + bbox.height / 2},
       right: {x: bbox.right, y: bbox.top + bbox.height / 2},
+      // rotation handle above top-center
+      rotate: {x: bbox.left + bbox.width / 2, y: bbox.top - 18},
+      // scale handle below bottom-center
+      scale: {x: bbox.left + bbox.width / 2, y: bbox.bottom + 18},
     };
 
     for (const [handle, pos] of Object.entries(handles)) {

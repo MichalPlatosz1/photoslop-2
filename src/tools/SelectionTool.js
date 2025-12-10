@@ -41,6 +41,13 @@ class SelectionTool {
       if (this.currentHandle) {
         this.isResizing = true;
         this.startPoint = {x: worldX, y: worldY};
+        // store initial bbox and transform state for resize/rotate/scale
+        this.resizeState = {
+          bbox: this.selectedShape.getBoundingBox(),
+          origRotation: this.selectedShape.rotation || 0,
+          origScale: this.selectedShape.scale || 1,
+          origPoints: this.selectedShape.points ? JSON.parse(JSON.stringify(this.selectedShape.points)) : null,
+        };
         return true;
       }
 
@@ -62,6 +69,30 @@ class SelectionTool {
 
   onMouseMove(worldX, worldY) {
     if (this.isResizing && this.selectedShape && this.currentHandle) {
+      // Handle rotation and scaling interactions directly here
+      if (this.currentHandle === "rotate") {
+        const bbox = this.resizeState.bbox;
+        const cx = bbox.left + bbox.width / 2;
+        const cy = bbox.top + bbox.height / 2;
+        const angle = (Math.atan2(worldY - cy, worldX - cx) * 180) / Math.PI;
+        this.selectedShape.setRotation(angle);
+        this.onShapeUpdate();
+        return true;
+      }
+
+      if (this.currentHandle === "scale") {
+        const bbox = this.resizeState.bbox;
+        const cx = bbox.left + bbox.width / 2;
+        const cy = bbox.top + bbox.height / 2;
+        const start = this.startPoint;
+        const origDist = Math.hypot(start.x - cx, start.y - cy) || 1;
+        const newDist = Math.hypot(worldX - cx, worldY - cy);
+        const factor = (newDist / origDist) * (this.resizeState.origScale || 1);
+        this.selectedShape.setScale(factor);
+        this.onShapeUpdate();
+        return true;
+      }
+
       if (this.selectedShape.resize) {
         this.selectedShape.resize(this.currentHandle, worldX, worldY);
         this.onShapeUpdate();
@@ -129,6 +160,8 @@ class SelectionTool {
         // Vertex handles (e.g., "vertex-0") and line end/start should use grab
         if (typeof handle === "string" && handle.startsWith("vertex-")) return "grab";
         if (handle === "start-point" || handle === "end-point") return "grab";
+        if (handle === "rotate") return "crosshair";
+        if (handle === "scale") return "nw-resize";
 
         switch (handle) {
           case "top-left":
@@ -258,6 +291,23 @@ class SelectionTool {
         ctx.lineWidth = 1 / viewport.zoom;
         ctx.strokeRect(bbox.left, bbox.top, bbox.width, bbox.height);
         ctx.setLineDash([]);
+        // Draw rotate and scale handles for polygon too
+        const rotatePos = {x: bbox.left + bbox.width / 2, y: bbox.top - 18};
+        const scalePos = {x: bbox.left + bbox.width / 2, y: bbox.bottom + 18};
+        // Rotate handle (circle)
+        ctx.beginPath();
+        ctx.fillStyle = "#ffc107";
+        ctx.arc(rotatePos.x, rotatePos.y, 8 / viewport.zoom / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1 / viewport.zoom;
+        ctx.stroke();
+        // Scale handle (square)
+        ctx.fillStyle = "#17a2b8";
+        const ss = 8 / viewport.zoom;
+        ctx.fillRect(scalePos.x - ss / 2, scalePos.y - ss / 2, ss, ss);
+        ctx.strokeStyle = "#ffffff";
+        ctx.strokeRect(scalePos.x - ss / 2, scalePos.y - ss / 2, ss, ss);
         ctx.restore();
         return;
       }
@@ -288,6 +338,26 @@ class SelectionTool {
         ctx.fillRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
         ctx.strokeRect(handle.x - handleSize / 2, handle.y - handleSize / 2, handleSize, handleSize);
       });
+
+      // Draw rotate and scale handles
+      const rotatePos = {x: bbox.left + bbox.width / 2, y: bbox.top - 18};
+      const scalePos = {x: bbox.left + bbox.width / 2, y: bbox.bottom + 18};
+
+      // Rotate handle (circle)
+      ctx.beginPath();
+      ctx.fillStyle = "#ffc107";
+      ctx.arc(rotatePos.x, rotatePos.y, 8 / viewport.zoom / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 1 / viewport.zoom;
+      ctx.stroke();
+
+      // Scale handle (square)
+      ctx.fillStyle = "#17a2b8";
+      const ss = 8 / viewport.zoom;
+      ctx.fillRect(scalePos.x - ss / 2, scalePos.y - ss / 2, ss, ss);
+      ctx.strokeStyle = "#ffffff";
+      ctx.strokeRect(scalePos.x - ss / 2, scalePos.y - ss / 2, ss, ss);
     }
 
     ctx.restore();

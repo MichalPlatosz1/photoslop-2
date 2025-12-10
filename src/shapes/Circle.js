@@ -12,7 +12,20 @@ class Circle extends Shape {
 
   draw(pixelBuffer) {
     const {r, g, b, a} = this.getRGBA();
-    Bresenham.drawCircleOutline(pixelBuffer, this.centerX, this.centerY, this.radius, r, g, b, a, this.lineWidth);
+    // Apply scale to radius; rotation has no visible effect on circle
+    const s = this.scale || 1;
+    const radius = Math.max(0, this.radius * s);
+    Bresenham.drawCircleOutline(
+      pixelBuffer,
+      Math.round(this.centerX),
+      Math.round(this.centerY),
+      Math.round(radius),
+      r,
+      g,
+      b,
+      a,
+      this.lineWidth
+    );
   }
 
   modify(newCenterX, newCenterY, newRadius) {
