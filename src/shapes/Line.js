@@ -165,7 +165,7 @@ class Line extends Shape {
       // Calculate the center of the line as default pivot
       const cx = (this.startX + this.endX) / 2;
       const cy = (this.startY + this.endY) / 2;
-      
+
       // Use custom pivot if set, otherwise use center
       const pivot = this.getEffectivePivot(cx, cy);
 

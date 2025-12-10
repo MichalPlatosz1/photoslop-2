@@ -113,7 +113,7 @@ const Canvas = () => {
   // Polygon state
   const [polygonPoints, setPolygonPoints] = useState([]);
   const [isCreatingPolygon, setIsCreatingPolygon] = useState(false);
-  
+
   // Pivot placement state
   const [isPlacingPivot, setIsPlacingPivot] = useState(false);
 
@@ -643,12 +643,12 @@ const Canvas = () => {
       ctxRef.current.save();
       const pivotX = selectedShape.pivotX;
       const pivotY = selectedShape.pivotY;
-      
+
       // Draw crosshair at pivot point
       ctxRef.current.strokeStyle = isPlacingPivot ? "#ff0000" : "#ff6b00";
       ctxRef.current.lineWidth = 2 / viewportRef.current.zoom;
       ctxRef.current.setLineDash([]);
-      
+
       const size = 8 / viewportRef.current.zoom;
       ctxRef.current.beginPath();
       ctxRef.current.moveTo(pivotX - size, pivotY);
@@ -656,18 +656,18 @@ const Canvas = () => {
       ctxRef.current.moveTo(pivotX, pivotY - size);
       ctxRef.current.lineTo(pivotX, pivotY + size);
       ctxRef.current.stroke();
-      
+
       // Draw circle around pivot
       ctxRef.current.beginPath();
       ctxRef.current.arc(pivotX, pivotY, size * 0.7, 0, 2 * Math.PI);
       ctxRef.current.stroke();
-      
+
       // Draw label
       ctxRef.current.fillStyle = isPlacingPivot ? "#ff0000" : "#ff6b00";
       ctxRef.current.font = `${12 / viewportRef.current.zoom}px Arial`;
       ctxRef.current.textAlign = "center";
       ctxRef.current.fillText("P", pivotX, pivotY - size - 4 / viewportRef.current.zoom);
-      
+
       ctxRef.current.restore();
     }
 
@@ -1223,7 +1223,12 @@ const Canvas = () => {
           if (shapeData.offsetX !== undefined || shapeData.offsetY !== undefined) {
             shape.setOffset(shapeData.offsetX || 0, shapeData.offsetY || 0);
           }
-          if (shapeData.pivotX !== undefined && shapeData.pivotY !== undefined && shapeData.pivotX !== null && shapeData.pivotY !== null) {
+          if (
+            shapeData.pivotX !== undefined &&
+            shapeData.pivotY !== undefined &&
+            shapeData.pivotX !== null &&
+            shapeData.pivotY !== null
+          ) {
             shape.setPivot(shapeData.pivotX, shapeData.pivotY);
           }
 
@@ -2075,7 +2080,11 @@ const Canvas = () => {
                         <input
                           type="number"
                           placeholder="auto"
-                          value={selectedShape.pivotX !== null && selectedShape.pivotX !== undefined ? selectedShape.pivotX : ""}
+                          value={
+                            selectedShape.pivotX !== null && selectedShape.pivotX !== undefined
+                              ? selectedShape.pivotX
+                              : ""
+                          }
                           onChange={(e) => handlePivotXChange(e.target.value)}
                           style={{width: "100%", fontSize: "11px", padding: "4px"}}
                         />
@@ -2085,7 +2094,11 @@ const Canvas = () => {
                         <input
                           type="number"
                           placeholder="auto"
-                          value={selectedShape.pivotY !== null && selectedShape.pivotY !== undefined ? selectedShape.pivotY : ""}
+                          value={
+                            selectedShape.pivotY !== null && selectedShape.pivotY !== undefined
+                              ? selectedShape.pivotY
+                              : ""
+                          }
                           onChange={(e) => handlePivotYChange(e.target.value)}
                           style={{width: "100%", fontSize: "11px", padding: "4px"}}
                         />

@@ -15,15 +15,15 @@ class Circle extends Shape {
     // Apply scale to radius; rotation has no visible effect on circle
     const s = this.scale || 1;
     const radius = Math.max(0, this.radius * s);
-    
+
     // Use custom pivot if set for offset calculation
     const defaultCx = this.centerX;
     const defaultCy = this.centerY;
     const pivot = this.getEffectivePivot(defaultCx, defaultCy);
-    
+
     // Transform center point (this applies offset)
     const transformedCenter = this.transformPoint(this.centerX, this.centerY, pivot.x, pivot.y);
-    
+
     Bresenham.drawCircleOutline(
       pixelBuffer,
       Math.round(transformedCenter.x),
@@ -122,7 +122,7 @@ class Circle extends Shape {
     if (this.rotation !== 0 || this.scale !== 1 || this.offsetX !== 0 || this.offsetY !== 0) {
       // Use custom pivot if set, otherwise use center
       const pivot = this.getEffectivePivot(this.centerX, this.centerY);
-      
+
       // Apply scale to radius
       if (this.scale !== 1) {
         this.radius *= this.scale;
@@ -130,7 +130,7 @@ class Circle extends Shape {
 
       // Transform the center point around the pivot
       const transformedCenter = this.transformPoint(this.centerX, this.centerY, pivot.x, pivot.y);
-      
+
       // Update center position
       this.centerX = transformedCenter.x;
       this.centerY = transformedCenter.y;

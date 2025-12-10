@@ -160,7 +160,7 @@ class Polygon extends Shape {
 
       const cx = minX + (maxX - minX) / 2;
       const cy = minY + (maxY - minY) / 2;
-      
+
       // Use custom pivot if set, otherwise use center
       const pivot = this.getEffectivePivot(cx, cy);
 

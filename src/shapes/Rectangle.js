@@ -80,7 +80,7 @@ class Rectangle extends Shape {
     // use custom pivot if set, otherwise use center
     const pivot = this.getEffectivePivot(defaultCx, defaultCy);
     const t = this.corners.map((p) => this.transformPoint(p.x, p.y, pivot.x, pivot.y));
-    
+
     // Draw lines between corners
     for (let i = 0; i < 4; i++) {
       const aP = t[i];
@@ -141,12 +141,10 @@ class Rectangle extends Shape {
     const defaultCx = minX + (maxX - minX) / 2;
     const defaultCy = minY + (maxY - minY) / 2;
     const pivot = this.getEffectivePivot(defaultCx, defaultCy);
-    
+
     // Transform corners to account for rotation, scale, and offset
-    const transformedCorners = this.corners.map((p) => 
-      this.transformPoint(p.x, p.y, pivot.x, pivot.y)
-    );
-    
+    const transformedCorners = this.corners.map((p) => this.transformPoint(p.x, p.y, pivot.x, pivot.y));
+
     // Check distance to each transformed edge
     for (let i = 0; i < 4; i++) {
       const p1 = transformedCorners[i];
