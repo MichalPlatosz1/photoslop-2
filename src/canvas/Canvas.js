@@ -1969,7 +1969,14 @@ const Canvas = () => {
                 }}
               >
                 {selectedShape.controlPoints.map((point, idx) => (
-                  <div key={idx} style={{marginBottom: "8px", paddingBottom: "8px", borderBottom: idx < selectedShape.controlPoints.length - 1 ? "1px solid #ddd" : "none"}}>
+                  <div
+                    key={idx}
+                    style={{
+                      marginBottom: "8px",
+                      paddingBottom: "8px",
+                      borderBottom: idx < selectedShape.controlPoints.length - 1 ? "1px solid #ddd" : "none",
+                    }}
+                  >
                     <div style={{fontSize: "12px", fontWeight: "bold", marginBottom: "4px"}}>Punkt {idx + 1}</div>
                     <div style={{display: "grid", gridTemplateColumns: "1fr 1fr", gap: "4px"}}>
                       <div>
@@ -2013,9 +2020,18 @@ const Canvas = () => {
                 Punkty ({bezierControlPoints.length}):
               </div>
               {bezierControlPoints.map((point, idx) => (
-                <div key={idx} style={{marginBottom: "8px", paddingBottom: "8px", borderBottom: idx < bezierControlPoints.length - 1 ? "1px solid #e0e0e0" : "none"}}>
+                <div
+                  key={idx}
+                  style={{
+                    marginBottom: "8px",
+                    paddingBottom: "8px",
+                    borderBottom: idx < bezierControlPoints.length - 1 ? "1px solid #e0e0e0" : "none",
+                  }}
+                >
                   <div style={{fontSize: "12px", fontWeight: "bold", marginBottom: "4px"}}>Punkt {idx + 1}</div>
-                  <div style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px", alignItems: "flex-end"}}>
+                  <div
+                    style={{display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "4px", alignItems: "flex-end"}}
+                  >
                     <div>
                       <label style={{fontSize: "10px", display: "block", marginBottom: "2px"}}>X:</label>
                       <input

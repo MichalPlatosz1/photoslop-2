@@ -174,18 +174,18 @@ class Rectangle extends Shape {
       const oldHeight = this.height;
       const cx = this.x + oldWidth / 2;
       const cy = this.y + oldHeight / 2;
-      
+
       // Apply scale to dimensions only (not to position)
       if (this.scale !== 1) {
         this.width *= this.scale;
         this.height *= this.scale;
       }
-      
+
       // Apply offset to the center position (rotation does nothing for rectangles)
       // Scale doesn't affect a point that's at the scale origin
       const newCx = cx + (this.offsetX || 0);
       const newCy = cy + (this.offsetY || 0);
-      
+
       // Position the rectangle so its center is at the new center
       this.x = newCx - this.width / 2;
       this.y = newCy - this.height / 2;

@@ -113,10 +113,10 @@ class Circle extends Shape {
       if (this.scale !== 1) {
         this.radius *= this.scale;
       }
-      
+
       // Apply offset to center (rotation does nothing for a circle's center)
-      this.centerX += (this.offsetX || 0);
-      this.centerY += (this.offsetY || 0);
+      this.centerX += this.offsetX || 0;
+      this.centerY += this.offsetY || 0;
       this.x = this.centerX;
       this.y = this.centerY;
     }
