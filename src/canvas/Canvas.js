@@ -16,6 +16,7 @@ import ColorSpaceConverter from "../components/ColorSpaceConverter.js";
 import RGBCube3D from "../components/RGBCube3D.js";
 import PointTransformations from "../components/PointTransformations.js";
 import ImageFilters from "../components/ImageFilters.js";
+import MorphologicalFilters from "../components/MorphologicalFilters.js";
 import HistogramAnalysis from "../components/HistogramAnalysis.js";
 import BinarizationMethods from "../components/BinarizationMethods.js";
 
@@ -98,6 +99,9 @@ const Canvas = () => {
 
   // Image Filters state
   const [showImageFilters, setShowImageFilters] = useState(false);
+
+  // Morphological Filters state
+  const [showMorphologicalFilters, setShowMorphologicalFilters] = useState(false);
 
   // Histogram Analysis state
   const [showHistogramAnalysis, setShowHistogramAnalysis] = useState(false);
@@ -1698,6 +1702,21 @@ const Canvas = () => {
             🔧 Filtry
           </button>
           <button
+            onClick={() => setShowMorphologicalFilters(!showMorphologicalFilters)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showMorphologicalFilters ? "#8b5cf6" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Filtry morfologiczne"
+          >
+            🔬 Morfologia
+          </button>
+          <button
             onClick={() => setShowHistogramAnalysis(!showHistogramAnalysis)}
             style={{
               padding: "4px 8px",
@@ -2778,6 +2797,64 @@ const Canvas = () => {
                 ×
               </button>
               <ImageFilters loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Morphological Filters Modal */}
+      {showMorphologicalFilters && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
+            }}
+            onClick={() => setShowMorphologicalFilters(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+              zIndex: 1000,
+              maxHeight: "90vh",
+              maxWidth: "90vw",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{position: "relative"}}>
+              <button
+                onClick={() => setShowMorphologicalFilters(false)}
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "25px",
+                  height: "25px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  zIndex: 1001,
+                }}
+                title="Zamknij filtry morfologiczne"
+              >
+                ×
+              </button>
+              <MorphologicalFilters loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
             </div>
           </div>
         </>
