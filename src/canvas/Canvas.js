@@ -19,6 +19,7 @@ import ImageFilters from "../components/ImageFilters.js";
 import MorphologicalFilters from "../components/MorphologicalFilters.js";
 import HistogramAnalysis from "../components/HistogramAnalysis.js";
 import BinarizationMethods from "../components/BinarizationMethods.js";
+import GreenAreaAnalysis from "../components/GreenAreaAnalysis.js";
 
 const Canvas = () => {
   const canvasRef = useRef(null);
@@ -108,6 +109,9 @@ const Canvas = () => {
 
   // Binarization Methods state
   const [showBinarizationMethods, setShowBinarizationMethods] = useState(false);
+
+  // Green Area Analysis state
+  const [showGreenAreaAnalysis, setShowGreenAreaAnalysis] = useState(false);
 
   // Bezier Curve state
   const [bezierPoints, setBezierPoints] = useState([]);
@@ -1746,6 +1750,21 @@ const Canvas = () => {
           >
             ⚫⚪ Binaryzacja
           </button>
+          <button
+            onClick={() => setShowGreenAreaAnalysis(!showGreenAreaAnalysis)}
+            style={{
+              padding: "4px 8px",
+              fontSize: "11px",
+              backgroundColor: showGreenAreaAnalysis ? "#28a745" : "#6c757d",
+              color: "#fff",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+            }}
+            title="Analiza zielonych obszarów"
+          >
+            🌿 Zieleń
+          </button>
         </div>
 
         {/* Zoom Controls */}
@@ -2971,6 +2990,64 @@ const Canvas = () => {
                 ×
               </button>
               <BinarizationMethods loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Green Area Analysis Modal */}
+      {showGreenAreaAnalysis && (
+        <>
+          <div
+            style={{
+              position: "fixed",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: "rgba(0, 0, 0, 0.5)",
+              zIndex: 999,
+            }}
+            onClick={() => setShowGreenAreaAnalysis(false)}
+          />
+          <div
+            style={{
+              position: "fixed",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              backgroundColor: "white",
+              border: "1px solid #ccc",
+              zIndex: 1000,
+              maxHeight: "90vh",
+              maxWidth: "90vw",
+              overflowY: "auto",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              borderRadius: "8px",
+            }}
+          >
+            <div style={{position: "relative"}}>
+              <button
+                onClick={() => setShowGreenAreaAnalysis(false)}
+                style={{
+                  position: "absolute",
+                  top: "10px",
+                  right: "10px",
+                  background: "#dc3545",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "50%",
+                  width: "25px",
+                  height: "25px",
+                  cursor: "pointer",
+                  fontSize: "14px",
+                  zIndex: 1001,
+                }}
+                title="Zamknij analizę zielonych obszarów"
+              >
+                ×
+              </button>
+              <GreenAreaAnalysis loadedImage={loadedImage?.data} onImageTransformed={handleImageTransformed} />
             </div>
           </div>
         </>

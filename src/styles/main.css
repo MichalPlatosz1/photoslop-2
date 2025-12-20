@@ -356,3 +356,245 @@ canvas {
     display: flex;
     flex-direction: column;
 }
+
+/* Green Area Analysis Styles */
+.green-area-analysis {
+    padding: 20px;
+    max-width: 1200px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.analysis-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #28a745;
+}
+
+.analysis-header h3 {
+    margin: 0;
+    color: #28a745;
+    font-size: 24px;
+}
+
+.analysis-controls {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    border-left: 4px solid #28a745;
+}
+
+.method-selection {
+    margin-bottom: 15px;
+}
+
+.method-selection label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+.method-selection select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    background-color: white;
+}
+
+.analyze-button {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    width: 100%;
+}
+
+.analyze-button:hover:not(:disabled) {
+    background-color: #218838;
+}
+
+.analyze-button:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+}
+
+.analysis-results {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.analysis-results h4 {
+    margin: 0 0 15px 0;
+    color: #155724;
+    font-size: 18px;
+}
+
+.result-item {
+    margin-bottom: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #c3e6cb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.result-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.result-item strong {
+    color: #155724;
+}
+
+.percentage-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: #28a745;
+    background-color: #f8fff9;
+    padding: 4px 12px;
+    border-radius: 4px;
+    border: 1px solid #28a745;
+}
+
+.parameters-section {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid #ffc107;
+}
+
+.parameters-section h4 {
+    margin: 0 0 15px 0;
+    color: #856404;
+    font-size: 18px;
+}
+
+.parameter-group {
+    margin-bottom: 20px;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.parameter-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: bold;
+    color: #333;
+}
+
+.parameter-group input[type="range"] {
+    width: 100%;
+    margin: 8px 0;
+}
+
+.parameter-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.parameter-group span {
+    display: inline-block;
+    min-width: 40px;
+    text-align: center;
+    font-weight: bold;
+    background-color: #007bff;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 10px;
+}
+
+.range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.range-inputs input[type="range"] {
+    flex: 1;
+    min-width: 100px;
+}
+
+.color-inputs {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto 1fr auto auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.color-preview {
+    grid-column: 1 / -1;
+    margin-top: 10px;
+}
+
+.visualization-section {
+    background-color: #e3f2fd;
+    border: 1px solid #bbdefb;
+    border-radius: 8px;
+    padding: 20px;
+    border-left: 4px solid #2196f3;
+}
+
+.visualization-controls {
+    margin-bottom: 15px;
+}
+
+.visualization-controls label {
+    display: flex;
+    align-items: center;
+    font-weight: bold;
+    color: #1976d2;
+    cursor: pointer;
+}
+
+.visualization-controls input[type="checkbox"] {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+.image-display {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.canvas-container {
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    flex: 1;
+    min-width: 300px;
+}
+
+.canvas-container h4 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 16px;
+}
+
+.canvas-container canvas {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
